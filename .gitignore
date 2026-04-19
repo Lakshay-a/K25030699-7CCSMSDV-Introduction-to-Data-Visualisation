@@ -1,0 +1,24 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Node (if you ever use it)
+node_modules/
+npm-debug.log
+
+# Python (just in case)
+__pycache__/
+*.pyc
+
+# Logs
+*.log
+
+# Environment files
+.env
+
+# VS Code settings (optional)
+.vscode/
+
+# Mac system files
+.AppleDouble
+.LSOverride

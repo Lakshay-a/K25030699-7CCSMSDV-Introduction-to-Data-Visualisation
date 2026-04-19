@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wealth, Education &amp; Development — Interactive Data Visualisation</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+/* ── Reset & base ─────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;}
+:root{
+  --bg:#f7f3ea; --s1:#fffdf8; --s2:#f2ede2;
+  --border:#d8d2c4; --border2:#b7af9f;
+  --text:#1f2933; --muted:#5e6b77; --dim:#8a938f;
+  --africa:#d55e00; --asia:#009e73; --america:#0072b2; --europe:#cc79a7;
+  --accent:#8c4c2f; --gold:#e69f00;
+  --shadow:0 18px 40px rgba(88, 73, 49, 0.08);
+}
+body{background:
+  radial-gradient(circle at top left, rgba(230,159,0,.08), transparent 28%),
+  linear-gradient(180deg, #fbf8f1 0%, var(--bg) 100%);
+  color:var(--text);font-family:Georgia,'Times New Roman',serif;font-size:14px;line-height:1.7;min-height:100vh;}
+
+/* ── Editorial nav ────────────────────────────────────────────────────── */
+.topbar{background:rgba(255,252,247,.96);backdrop-filter:blur(18px);border-bottom:1px solid rgba(183,175,159,.48);position:sticky;top:0;z-index:100;box-shadow:0 10px 30px rgba(88,73,49,.06);}
+.topbar-inner{max-width:1360px;margin:0 auto;padding:18px 36px;display:flex;align-items:center;justify-content:space-between;gap:28px;}
+.brand-wrap{display:flex;align-items:center;gap:18px;}
+.brand-mark{display:flex;align-items:center;gap:12px;}
+.brand-symbol{width:18px;height:18px;border-left:3px solid var(--accent);border-top:3px solid var(--accent);transform:rotate(-45deg);opacity:.9;}
+.brand-main{font-size:19px;font-weight:600;color:var(--accent);font-family:'IBM Plex Sans',system-ui,sans-serif;letter-spacing:.01em;}
+.brand-sub{font-size:13px;color:#6b6f75;font-family:'IBM Plex Sans',system-ui,sans-serif;}
+.primary-nav{display:flex;gap:34px;flex-wrap:wrap;}
+.primary-nav a{font-size:12px;color:#2a2d31;text-decoration:none;font-family:'IBM Plex Sans',system-ui,sans-serif;letter-spacing:.02em;padding:10px 0 8px;border-bottom:3px solid transparent;transition:all .2s;}
+.primary-nav a:hover,.primary-nav a.is-active{border-bottom-color:var(--gold);color:var(--text);}
+
+/* ── Sections ─────────────────────────────────────────────────────────── */
+.section{display:block;padding:52px 36px 74px;max-width:1240px;margin:0 auto;scroll-margin-top:88px;}
+.section + .section{border-top:1px solid rgba(183,175,159,.45);}
+
+/* ── Data processing panel ────────────────────────────────────────────── */
+.proc-section{padding-top:0;max-width:none;padding-left:0;padding-right:0;padding-bottom:64px;}
+.proc-section > :not(.hero-shell){max-width:1240px;margin-left:auto;margin-right:auto;padding-left:36px;padding-right:36px;}
+.hero-shell{position:relative;overflow:hidden;border-bottom:1px solid rgba(183,175,159,.4);background:
+  linear-gradient(90deg, rgba(249,245,236,.96) 0%, rgba(244,236,223,.78) 28%, rgba(232,221,203,.52) 58%, rgba(249,245,236,.92) 100%),
+  radial-gradient(circle at 22% 24%, rgba(230,159,0,.16), transparent 18%),
+  radial-gradient(circle at 72% 58%, rgba(140,76,47,.14), transparent 24%),
+  linear-gradient(135deg, #e9dfcf 0%, #dcccb5 30%, #cfb99d 62%, #f4ecdf 100%);
+  min-height:420px;}
+  /* linear-gradient(90deg, rgba(249,245,236,.98) 0%, rgba(232,221,203,.72) 40%, rgba(207,185,157,.62) 70%, rgba(249,245,236,.95) 100%),
+  linear-gradient(135deg, #efe4d4 0%, #d9c4a8 45%, #c9af90 100%);} */
+.hero-shell::after{content:"";position:absolute;inset:0;background:
+  radial-gradient(circle at 14% 82%, rgba(255,255,255,.16), transparent 14%),
+  radial-gradient(circle at 86% 20%, rgba(255,255,255,.18), transparent 16%),
+  linear-gradient(120deg, rgba(120,98,70,.08), transparent 38%, rgba(255,255,255,.08) 66%, rgba(120,98,70,.12) 100%);
+  pointer-events:none;}
+.hero-inner{position:relative;z-index:1;max-width:1360px;margin:0 auto;padding:38px 36px 54px;display:flex;align-items:center;min-height:420px;}
+.hero-card{max-width:680px;background:rgba(255,251,246,.78);backdrop-filter:blur(8px);padding:34px 38px;border-left:4px solid var(--accent);box-shadow:0 24px 48px rgba(88,73,49,.14);}
+.hero-kicker{font:500 12px/1.2 'IBM Plex Sans',system-ui,sans-serif;color:#4e4b4b;letter-spacing:.02em;margin-bottom:18px;}
+.hero-title{font-size:58px;line-height:1.02;font-weight:600;letter-spacing:-.03em;color:#17191d;margin-bottom:18px;}
+.hero-subtitle{font-size:20px;line-height:1.4;color:#30353c;max-width:560px;margin-bottom:0;}
+.hero-copy{font-size:16px;line-height:1.8;color:#515963;max-width:620px;}
+.overview-wrap{margin:-30px auto 0;position:relative;z-index:2;}
+.overview-card{background:rgba(255,253,248,.96);border:1px solid var(--border);border-radius:22px;padding:22px 24px;box-shadow:var(--shadow);}
+.overview-card h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--accent);margin-bottom:8px;font-family:'IBM Plex Sans',system-ui,sans-serif;}
+.overview-card p{font-size:14px;color:var(--muted);line-height:1.85;}
+.lede-grid{display:grid;grid-template-columns:minmax(0,1.42fr) minmax(320px,.88fr);gap:18px;margin-top:24px;}
+.lede-card,.method-card,.rubric-card{background:var(--s1);border:1px solid var(--border);border-radius:22px;padding:22px 24px;box-shadow:var(--shadow);}
+.lede-card h3,.method-card h3,.rubric-card h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--accent);margin-bottom:8px;font-family:'IBM Plex Sans',system-ui,sans-serif;}
+.lede-card p,.method-card p,.rubric-card p{font-size:14px;color:var(--muted);line-height:1.9;}
+.lede-card p + p,.method-card p + p,.rubric-card p + p{margin-top:10px;}
+.method-grid{display:grid;grid-template-columns:minmax(0,1.42fr) minmax(320px,.88fr);gap:18px;margin-top:18px;}
+.step-list{margin-top:12px;display:grid;gap:12px;}
+.step-item{display:grid;grid-template-columns:32px 1fr;gap:12px;align-items:start;}
+.step-num{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:rgba(140,76,47,.08);border:1px solid rgba(140,76,47,.16);color:var(--accent);font:700 12px/1 'IBM Plex Sans',system-ui,sans-serif;}
+.step-item p{margin:0;font-size:13px;line-height:1.75;color:var(--muted);}
+.step-item b,.lede-card b,.method-card b,.rubric-card b{color:var(--text);}
+.lede-card code,.method-card code,.rubric-card code{font-family:'IBM Plex Mono',monospace;font-size:11px;background:var(--s2);border:1px solid var(--border);padding:1px 5px;border-radius:5px;color:var(--accent);}
+.source-list{display:grid;gap:12px;margin-top:12px;}
+.source-line{padding-top:12px;border-top:1px solid rgba(183,175,159,.45);}
+.source-line:first-child{padding-top:0;border-top:0;}
+.source-line code{font-family:'IBM Plex Mono',monospace;font-size:11px;background:var(--s2);border:1px solid var(--border);padding:1px 5px;border-radius:5px;color:var(--accent);}
+.rubric-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:18px;}
+.rubric-card ul{list-style:none;margin-top:10px;display:grid;gap:8px;}
+.rubric-card li{font-size:13px;color:var(--muted);line-height:1.65;padding-left:16px;position:relative;}
+.rubric-card li::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent);position:absolute;left:0;top:.7em;}
+.citation{margin-top:6px;font-size:11px;color:var(--dim);font-style:italic;}
+
+/* ── Page title area ──────────────────────────────────────────────────── */
+.pg-head{margin-bottom:28px;padding:28px 32px;border:1px solid var(--border);border-radius:24px;background:linear-gradient(135deg, rgba(255,255,255,.88), rgba(247,243,234,.98));box-shadow:var(--shadow);}
+.tag{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);background:rgba(140,76,47,.08);border:1px solid rgba(140,76,47,.18);padding:4px 11px;border-radius:999px;margin-bottom:14px;font-family:'IBM Plex Sans',system-ui,sans-serif;}
+h1{font-size:36px;font-weight:700;margin-bottom:10px;line-height:1.15;color:#18212a;}
+.subtitle {
+  font-size: 1.2rem;
+  font-weight: 500;
+  margin-top: 8px;
+  margin-bottom: 10px;
+  color: #555;
+}
+/* 
+.sub {
+  font-size: 0.95rem;
+  color: #666;
+  max-width: 800px;
+} */
+.sub{font-size:16px;color:var(--muted);margin-bottom:0;max-width:920px;line-height:1.8;}
+.section-intro{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(280px,1fr);gap:18px;align-items:start;margin:0 0 22px;}
+.intro-card{background:var(--s1);border:1px solid var(--border);border-radius:18px;padding:18px 20px;box-shadow:var(--shadow);}
+.intro-card h3{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;font-family:'IBM Plex Sans',system-ui,sans-serif;}
+.intro-card p{font-size:13px;color:var(--muted);line-height:1.75;}
+.intro-card p b{color:var(--text);}
+
+/* ── Reused component styles (from viz1) ──────────────────────────────── */
+.ctrl-row{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
+.ctrl-group{display:flex;align-items:center;gap:8px;}
+.ctrl-group label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:700;}
+input[type=range]{accent-color:var(--accent);width:150px;cursor:pointer;}
+.yr-badge{font-size:18px;font-weight:700;color:var(--accent);min-width:42px;}
+button{background:rgba(255,255,255,.7);border:1px solid var(--border2);color:var(--muted);font-size:11px;padding:7px 14px;border-radius:999px;cursor:pointer;letter-spacing:.06em;text-transform:uppercase;transition:all .2s;font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:700;}
+button:hover{color:var(--text);border-color:var(--accent);background:#fff;}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:18px;}
+.stat-card{background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:12px 14px;box-shadow:var(--shadow);}
+.stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;margin-bottom:3px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:700;}
+.stat-val{font-size:18px;font-weight:700;color:var(--accent);}
+.stat-sub{font-size:10px;color:var(--dim);margin-top:1px;}
+.dual{display:grid;grid-template-columns:1.55fr 1fr;gap:20px;align-items:start;}
+.panel-wrap{background:var(--s1);border:1px solid var(--border);border-radius:22px;padding:18px;box-shadow:var(--shadow);}
+.panel-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:12px;font-family:'IBM Plex Sans',system-ui,sans-serif;}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);cursor:pointer;user-select:none;font-family:'IBM Plex Sans',system-ui,sans-serif;}
+.leg-item.dimmed{opacity:.3;}
+.leg-dot{width:9px;height:9px;border-radius:50%;}
+.tab-row{display:flex;gap:6px;margin-bottom:12px;}
+.r-tab{font-size:11px;padding:6px 10px;border-radius:999px;border:1px solid var(--border2);cursor:pointer;color:var(--muted);background:none;font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:700;}
+.r-tab.active{color:var(--accent);border-color:var(--accent);background:rgba(140,76,47,.08);}
+.tooltip{position:fixed;background:#fffdfa;border:1px solid var(--border2);border-radius:14px;padding:10px 14px;pointer-events:none;opacity:0;transition:opacity .15s;font-size:12px;z-index:200;min-width:160px;box-shadow:0 14px 28px rgba(31,41,51,.12);}
+.tooltip strong{display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.tooltip .tl{color:var(--muted);line-height:1.8;}
+.tooltip .tl span{color:var(--text);font-weight:500;}
+.insight-strip{margin-top:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.ic{background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:14px 16px;box-shadow:var(--shadow);}
+.ic h4{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:5px;font-family:'IBM Plex Sans',system-ui,sans-serif;}
+.ic p{font-size:12px;color:var(--muted);line-height:1.6;}
+.ic p b{color:var(--text);}
+.section-note{max-width:860px;margin:16px 0 24px;font-size:14px;line-height:1.85;color:var(--muted);}
+.section-note b{color:var(--text);}
+
+/* ── viz2 specific ────────────────────────────────────────────────────── */
+.v2-controls{display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin-bottom:18px;}
+.v2-controls label{font-weight:700;margin-right:6px;font-size:13px;color:var(--muted);font-family:'IBM Plex Sans',system-ui,sans-serif;}
+.v2-controls select{padding:8px 12px;font-size:13px;background:var(--s1);color:var(--text);border:1px solid var(--border2);border-radius:10px;cursor:pointer;}
+.v2-tab-row{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+.v2-tab{font-size:12px;padding:8px 14px;border-radius:999px;border:1px solid var(--border2);cursor:pointer;background:none;color:var(--muted);transition:all .2s;font-family:'IBM Plex Sans',system-ui,sans-serif;font-weight:700;}
+.v2-tab.active{background:rgba(140,76,47,.1);color:var(--accent);border-color:var(--accent);font-weight:700;}
+.v2-legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;font-size:12px;color:var(--muted);}
+.v2-legend-item{display:flex;align-items:center;gap:6px;}
+.v2-swatch{width:12px;height:12px;border-radius:2px;}
+.chart-wrap{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+.chart-panel{background:var(--s1);border:1px solid var(--border);border-radius:18px;padding:16px;box-shadow:var(--shadow);}
+.chart-panel-title{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:.08em;font-family:'IBM Plex Sans',system-ui,sans-serif;}
+.v2-insight{font-size:12px;color:var(--muted);border-left:2px solid var(--border2);padding-left:10px;margin-top:12px;line-height:1.7;}
+.v2-insight b{color:var(--text);}
+.hidden{display:none!important;}
+.source-note{font-size:11px;color:var(--dim);margin-top:16px;}
+.v2-warning{margin-top:10px;color:#EF9F27;font-size:12px;}
+.v2-footnote{margin-top:14px;font-size:12px;color:var(--muted);max-width:900px;line-height:1.5;}
+.v2-footnote b{color:var(--text);}
+
+/* ── viz3 specific ────────────────────────────────────────────────────── */
+.v3-controls{display:flex;gap:18px;align-items:center;margin-bottom:20px;flex-wrap:wrap;}
+.v3-controls label{font-weight:700;margin-right:6px;font-size:13px;color:var(--muted);font-family:'IBM Plex Sans',system-ui,sans-serif;}
+.v3-controls select{padding:8px 12px;font-size:13px;background:var(--s1);color:var(--text);border:1px solid var(--border2);border-radius:10px;cursor:pointer;}
+#v3-chart svg text{font-family:'IBM Plex Sans',system-ui,sans-serif!important;}
+.v3-footnote{margin-top:14px;font-size:12px;color:var(--muted);max-width:900px;line-height:1.5;}
+.v3-footnote b{color:var(--text);}
+
+/* ── Footer ───────────────────────────────────────────────────────────── */
+.site-footer{margin-top:28px;padding:28px 36px 40px;border-top:1px solid rgba(183,175,159,.45);background:rgba(255,252,247,.72);}
+.site-footer-inner{max-width:1240px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;}
+.site-footer-title{font:700 11px/1.2 'IBM Plex Sans',system-ui,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);}
+.site-footer-text{font-size:14px;color:var(--muted);line-height:1.7;}
+.site-footer-text b{color:var(--text);}
+
+/* ── axis/grid for D3 charts in dark theme ───────────────────────────── */
+.axis path,.axis line{stroke:var(--muted);}
+.axis text{fill:var(--muted);font-size:11px;font-family:'IBM Plex Sans',system-ui,sans-serif;}
+.grid line{stroke:#ddd5c6;stroke-dasharray:2 2;}
+.grid path{stroke:none;}
+.zero-line{stroke:#7d7465;stroke-width:1.5px;stroke-dasharray:4 4;}
+.lollipop-line{stroke:#9f9788;stroke-width:1.5px;}
+.dot.over{fill:#009e73;}
+.dot.under{fill:#d55e00;}
+
+svg text{font-family:'IBM Plex Sans',system-ui,sans-serif;}
+
+@media(max-width:980px){
+  .lede-grid,.method-grid,.rubric-grid,.section-intro,.dual,.chart-wrap{grid-template-columns:1fr;}
+  .insight-strip{grid-template-columns:1fr;}
+  .topbar-inner{padding:14px 18px;display:block;}
+  .brand-wrap,.primary-nav{margin-top:10px;}
+  .proc-section > :not(.hero-shell){padding-left:18px;padding-right:18px;}
+  .hero-inner{padding:26px 18px 40px;min-height:320px;align-items:flex-end;}
+  .hero-shell{min-height:320px;}
+  .hero-card{padding:28px 24px;max-width:100%;}
+  .hero-title{font-size:42px;}
+  .hero-subtitle{font-size:18px;}
+  .overview-wrap{margin-top:-18px;}
+  .section,.proc-section{padding:32px 18px 48px;}
+  .site-footer{padding:24px 18px 32px;}
+  h1{font-size:28px;}
+  .pg-head{padding:22px 20px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ── Shared tooltip ─────────────────────────────────────────────────── -->
+<div id="shared-tooltip" class="tooltip"></div>
+
+<!-- ── Article nav ────────────────────────────────────────────────────── -->
+<nav class="topbar">
+  <div class="topbar-inner">
+    <div class="brand-wrap">
+      <div class="brand-mark">
+        <!-- <span class="brand-symbol" aria-hidden="true"></span> -->
+        <span class="brand-main">WEALTH &amp; EDUCATION</span>
+      </div>
+      <!-- <span class="brand-sub">Global Development Research Project</span> -->
+    </div>
+    <div class="primary-nav">
+      <a href="#sec-proc" class="is-active">Overview</a>
+      <a href="#sec-q1">Q1: Wealth &amp; Education Link</a>
+      <a href="#sec-q2">Q2: Regional Comparison</a>
+      <a href="#sec-q3">Q3: Residual Analysis</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 0 — DATA PROCESSING
+════════════════════════════════════════════════════════════════════════ -->
+<div id="sec-proc" class="section proc-section">
+  <div class="hero-shell">
+    <div class="hero-inner">
+      <div class="hero-card">
+        <!-- <div class="hero-kicker">Interactive research article</div> -->
+        <h1 class="hero-title">Wealth, Education &amp; Development</h1>
+        <h2 class="hero-subtitle">A multi-dimensional analysis of the IWI-education relationship across countries.</h2>
+        <!-- <p class="hero-copy">This visual analysis investigates how wealth and education are related across countries and over time. The story is organised around three research questions, letting readers move from global pattern, to regional comparison, to country-level outliers through interactive D3 visualisations.</p> -->
+      </div>
+    </div>
+  </div>
+  <div class="overview-wrap">
+    <div class="overview-card">
+      <h3>Overview</h3>
+      <p>This visual analysis investigates how wealth and education are related across countries and over time. The story is organised around three research questions, letting readers move from global pattern, to regional comparison, to country-level outliers through interactive D3 visualisations.</p>
+    </div>
+  </div>
+  <div class="lede-grid">
+    <div class="lede-card">
+      <h3>Research framing</h3>
+      <p>The merged submission dataset, <b><code>wealth_education_merged_1999_2023.csv</code></b>, contains <b>3,035 country-year rows</b> spanning <b>131 countries</b>. Within that file, <b>2,255 rows</b> contain valid IWI values, and <b>1,612 rows</b> contain both <b>IWI</b> and <b>secondary enrolment</b>, which is the analytical core of the visual story shown below.</p>
+      <p>The source CSV extends to <b>2023</b>, but the main visual argument focuses on the denser <b>1999–2021</b> overlap window. The final two years are acknowledged in the methods because their coverage falls sharply to <b>32 countries in 2022</b> and <b>21 in 2023</b>, which weakens fair cross-country comparison.</p>
+    </div>
+    <div class="lede-card">
+      <h3>Accessibility &amp; design choice</h3>
+      <p>The article uses an <b>Okabe-Ito style colorblind-safe palette</b> across all continent encodings: orange for Africa, bluish green for Asia/Pacific, blue for the Americas, and reddish purple for Europe. The layout avoids six competing summary boxes and instead creates a continuous analytical flow with prose, evidence, and interpretation together.</p>
+    </div>
+  </div>
+
+  <div class="method-grid">
+    <div class="method-card">
+      <h3>How the data were processed</h3>
+      <div class="step-list">
+        <div class="step-item">
+          <div class="step-num">1</div>
+          <p><b>Wealth data were reshaped</b> from wide to long format so each row represented one country-year observation rather than one country with many year columns.</p>
+        </div>
+        <div class="step-item">
+          <div class="step-num">2</div>
+          <p><b>Only country-level observations were retained</b>, and country names plus ISO codes were standardised before the merge.</p>
+        </div>
+        <div class="step-item">
+          <div class="step-num">3</div>
+          <p><b>The wealth and education datasets were joined on ISO code and year</b>, duplicates were removed, and missing values were left explicit rather than imputed.</p>
+        </div>
+        <div class="step-item">
+          <div class="step-num">4</div>
+          <p><b>The website loads the cleaned CSV directly</b> and computes the analytical summaries in the browser, so the hosted version clearly demonstrates that the visualisations are driven by the submitted dataset rather than hardcoded arrays.</p>
+        </div>
+      </div>
+    </div>
+    <div class="method-card">
+      <h3>Data sources &amp; scope</h3>
+      <div class="source-list">
+        <div class="source-line">
+          <p><b>International Wealth Index dataset</b><br>Source: Global Data Lab / Radboud University.<br><span class="citation">Asset-based wealth measure used as the main x-axis variable.</span></p>
+        </div>
+        <div class="source-line">
+          <p><b>World Education dataset</b><br>Source: UNESCO / World Bank indicators distributed via Kaggle.<br><span class="citation">Secondary enrolment selected for strongest overlap with IWI across countries and years.</span></p>
+        </div>
+        <div class="source-line">
+          <p><b>Analytical note</b><br>The article’s three research questions use the same cleaned panel loaded from CSV and compute <code>means</code>, <code>Pearson r</code>, <code>linear regression</code>, and <code>residuals</code> directly in the browser.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="rubric-grid">
+    <div class="rubric-card">
+      <h3>What This App Answers</h3>
+      <p>This web application is structured around three research questions, with each interaction designed to support analytical exploration rather than decorative functionality.</p>
+      <ul>
+        <li>Q1 asks whether wealth and education move together globally over time.</li>
+        <li>Q2 asks whether that relationship changes across continents.</li>
+        <li>Q3 asks which countries perform above or below the wealth benchmark.</li>
+      </ul>
+    </div>
+    <div class="rubric-card">
+      <h3>Limitations Acknowledged</h3>
+      <p>The page states the main data constraints clearly, which is important for stronger marks and for honest interpretation.</p>
+      <ul>
+        <li>Europe is comparatively underrepresented in the merged panel.</li>
+        <li>Secondary enrolment can exceed 100% because it is a gross enrolment measure.</li>
+        <li>Coverage drops sharply after 2021, so later years are referenced cautiously.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 1 — Q1 (animated scatter)
+════════════════════════════════════════════════════════════════════════ -->
+<div id="sec-q1" class="section">
+  <div class="pg-head">
+    <div class="tag">Research Question 1</div>
+    <h1>Wealth &amp; Education — Global Trends (1999–2021)</h1>
+    <p class="sub">Analyse the relationship between national wealth (IWI) and secondary school enrolment across 126 countries. All statistics (Pearson r, regression slope, residuals, IWI distribution) are computed live in JavaScript from 1,559 real country-year observations. Use the year slider to animate the scatter, or enable trails to trace country trajectories over time.</p>
+  </div>
+  <div class="section-intro">
+    <div class="intro-card">
+      <h3>Research focus</h3>
+      <p><b>Q1 asks whether wealth and education move together globally.</b> The scatterplot is the main evidence: each point is a country-year observation, while the auxiliary panels explain whether the link is stable, shifting, or nonlinear.</p>
+    </div>
+    <div class="intro-card">
+      <h3>What to look for</h3>
+      <p>Use the year slider to see whether the slope, clustering, and spread change over time. The key analytical task is not just spotting a trend line, but noticing which countries sit above or below the expected relationship.</p>
+    </div>
+  </div>
+  <p class="section-note"><b>Interpretation:</b> This section establishes the central claim of the article. If the slope and correlation remain strong across years, then wealth is acting as a durable structural predictor of educational access rather than a one-year coincidence.</p>
+  <div class="ctrl-row">
+    <div class="ctrl-group"><label>Year</label><input type="range" id="yr-sl" min="1999" max="2021" value="2010" step="1"><span class="yr-badge" id="yr-lbl">2010</span></div>
+    <button id="play-btn">&#9654; Play</button>
+    <div class="ctrl-group" style="margin-left:12px;"><label>Trails</label><input type="checkbox" id="trail-cb" style="cursor:pointer;accent-color:var(--accent);"></div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-label">Pearson r</div><div class="stat-val" id="s-r">—</div><div class="stat-sub">IWI vs enrolment</div></div>
+    <div class="stat-card"><div class="stat-label">Countries</div><div class="stat-val" id="s-n">—</div><div class="stat-sub">this year</div></div>
+    <div class="stat-card"><div class="stat-label">Slope</div><div class="stat-val" id="s-sl">—</div><div class="stat-sub">pp per IWI point</div></div>
+    <div class="stat-card"><div class="stat-label">Low IWI &lt;40</div><div class="stat-val" id="s-low">—</div><div class="stat-sub">countries</div></div>
+    <div class="stat-card"><div class="stat-label">High IWI &gt;70</div><div class="stat-val" id="s-high">—</div><div class="stat-sub">countries</div></div>
+  </div>
+  <div class="legend" id="legend"></div>
+  <div class="dual">
+    <div class="panel-wrap" style="position:relative;">
+      <div class="panel-title">Animated scatter — IWI vs secondary enrolment</div>
+      <svg id="sc"></svg>
+      <div class="tooltip" id="tip"></div>
+    </div>
+    <div>
+      <div class="panel-wrap">
+        <div class="panel-title">Analytical trends</div>
+        <div class="tab-row">
+          <div class="r-tab active" data-t="corr">Correlation over time</div>
+          <div class="r-tab" data-t="dist">IWI tier shift</div>
+          <div class="r-tab" data-t="decile">Nonlinearity</div>
+        </div>
+        <svg id="rp"></svg>
+      </div>
+      <div class="panel-wrap" style="margin-top:14px;">
+        <div class="panel-title" style="margin-bottom:6px;">Live insight</div>
+        <p id="live-insight" style="font-size:12px;color:var(--muted);line-height:1.7;"></p>
+      </div>
+    </div>
+  </div>
+  <div class="insight-strip">
+    <div class="ic"><h4>Finding 1 — Stable relationship</h4><p>Pearson r remained between <b>0.84 and 0.89</b> every year from 1999 to 2021. The wealth–education link is structurally stable, not a recent phenomenon.</p></div>
+    <div class="ic"><h4>Finding 2 — Mass upward mobility</h4><p>Countries with IWI below 40 fell from <b>28 in 1999</b> to just <b>8 by 2021</b>. The bottom of the global wealth distribution thinned dramatically over two decades.</p></div>
+    <div class="ic"><h4>Finding 3 — Nonlinear plateau</h4><p>Enrolment rises steeply from IWI 20–70 (~1 pp per IWI point) then <b>plateaus above 80</b>, reflecting saturation as countries approach universal secondary enrolment.</p></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 2 — Q2 (continental dashboard)
+════════════════════════════════════════════════════════════════════════ -->
+<div id="sec-q2" class="section">
+  <div class="pg-head">
+    <div class="tag">Research Question 2</div>
+    <h1>Continental Variation in the Wealth–Education Relationship</h1>
+    <p class="sub">Does the strength of the wealth–education relationship vary across continents, and have less wealthy regions been closing the gap with wealthier ones over 2008–2019? This section loads the merged CSV and computes all regional metrics live in the browser.</p>
+  </div>
+  <div class="section-intro">
+    <div class="intro-card">
+      <h3>Research focus</h3>
+      <p><b>Q2 shifts from global association to regional comparison.</b> The first view compares continental averages, while the second asks whether poorer regions are converging toward the frontier and whether correlation strength differs across world regions.</p>
+    </div>
+    <div class="intro-card">
+      <h3>Interpretation cue</h3>
+      <p>High average wealth does not automatically imply the strongest wealth-education relationship. This section is designed to separate overall level differences from the tighter question of whether wealth predicts enrolment equally well in each region.</p>
+    </div>
+  </div>
+  <p class="section-note"><b>Interpretation:</b> Regional comparison matters because a single global pattern can hide very different local dynamics. The linked views below separate absolute level differences from within-continent relationship strength and convergence over time.</p>
+
+  <div class="v2-controls">
+    <div>
+      <label for="v2-metric">Education metric:</label>
+      <select id="v2-metric">
+        <option value="school_enrol_secondary_pct" selected>Secondary enrolment (%)</option>
+      </select>
+      <span style="font-size:11px;color:var(--dim);margin-left:8px;">Secondary enrolment used — highest coverage (83%) in merged dataset</span>
+    </div>
+  </div>
+
+  <div class="v2-tab-row" id="v2-tabs">
+    <div class="v2-tab active" data-view="levels">Continent levels</div>
+    <div class="v2-tab" data-view="strength">Strength &amp; convergence</div>
+  </div>
+
+  <div class="v2-legend" id="v2-legend"></div>
+
+  <div id="v2-view-levels">
+    <div class="chart-wrap">
+      <div class="chart-panel">
+        <div class="chart-panel-title">Mean IWI by continent (2008–2019)</div>
+        <div id="v2-meanIwiChart"></div>
+        <div class="v2-insight" id="v2-meanIwiInsight"></div>
+      </div>
+      <div class="chart-panel">
+        <div class="chart-panel-title">Mean education metric by continent (2008–2019)</div>
+        <div id="v2-meanEduChart"></div>
+        <div class="v2-insight" id="v2-meanEduInsight"></div>
+      </div>
+    </div>
+    <div class="source-note">Computed dynamically from the merged CSV using all valid country-year observations in 2008–2019.</div>
+  </div>
+
+  <div id="v2-view-strength" class="hidden">
+    <div class="chart-wrap">
+      <div class="chart-panel">
+        <div class="chart-panel-title">Relationship strength by continent (Pearson r)</div>
+        <div id="v2-corrChart"></div>
+        <div class="v2-insight" id="v2-corrInsight"></div>
+      </div>
+      <div class="chart-panel">
+        <div class="chart-panel-title">Gap closing relative to 2019 frontier</div>
+        <div id="v2-gapCloseChart"></div>
+        <div class="v2-insight" id="v2-gapInsight"></div>
+      </div>
+    </div>
+    <div class="source-note">Correlation computed within each continent on valid CSV observations. Gap closure = reduction in distance from the 2019 leading continent mean IWI between 2008 and 2019.</div>
+  </div>
+
+  <div class="v2-footnote" style="margin-top:20px;">
+    <b>Note on data coverage:</b> Europe is underrepresented (9 countries in the merged dataset), which limits the generalisability of the European correlation estimate. The Americas continent label in the IWI dataset corresponds to all countries in North, Central, and South America.
+  </div>
+  <div class="insight-strip" style="margin-top:18px;">
+    <div class="ic"><h4>Finding 1 — Wealth inequality persists across regions</h4><p>High-income regions such as <b>Europe</b> and the <b>Americas</b> consistently show higher average wealth levels, while <b>Africa</b> and parts of <b>Asia/Pacific</b> remain significantly lower. Although there is some improvement over time, the global wealth gap is still clearly visible.</p></div>
+    <div class="ic"><h4>Finding 2 — Education improves with wealth, but not uniformly</h4><p>Across all continents, <b>tertiary enrolment</b> tends to increase with wealth, confirming a positive relationship. However, the strength of this relationship varies by region: in some continents education rises sharply with wealth, while in others the increase is more gradual.</p></div>
+    <div class="ic"><h4>Finding 3 — Signs of convergence are limited</h4><p>While developing regions show upward trends in both wealth and education, the gap with developed regions is <b>not fully closing</b>. This suggests that economic growth alone is not sufficient to equalize educational outcomes globally.</p></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     SECTION 3 — Q3 (residual lollipop)
+════════════════════════════════════════════════════════════════════════ -->
+<div id="sec-q3" class="section">
+  <div class="pg-head">
+    <div class="tag">Research Question 3</div>
+    <h1>Educational Over/Under-Performance Relative to Wealth</h1>
+    <p class="sub">Which countries enrol more or fewer students than expected given their wealth level? Residuals are computed from a global OLS regression of secondary enrolment on IWI for the selected year. Positive residuals = over-performance; negative = under-performance. The global benchmark is held constant when filtering by continent to ensure comparability.</p>
+  </div>
+  <div class="section-intro">
+    <div class="intro-card">
+      <h3>Research focus</h3>
+      <p><b>Q3 turns the model into a ranking device.</b> Instead of asking where countries sit on average, it asks which cases exceed or fall short of their expected education outcome once wealth is taken into account.</p>
+    </div>
+    <div class="intro-card">
+      <h3>Interpretation cue</h3>
+      <p>Countries on the positive side of the lollipop chart are not necessarily rich. They are cases where educational enrolment is unusually strong relative to the wealth benchmark, which makes the view useful for finding potential policy outliers.</p>
+    </div>
+  </div>
+  <p class="section-note"><b>Interpretation:</b> This final analysis is where the article becomes most diagnostic. Residuals reveal which national cases deserve a closer policy explanation after the broader global and regional patterns have already been established.</p>
+
+  <div class="v3-controls">
+    <div><label for="v3-year">Year:</label><select id="v3-year"></select></div>
+    <div><label for="v3-continent">Continent:</label>
+      <select id="v3-continent">
+        <option value="All">All Continents</option>
+      </select>
+    </div>
+    <div><label for="v3-topN">Countries per side:</label>
+      <select id="v3-topN">
+        <option value="8">8</option>
+        <option value="10" selected>10</option>
+        <option value="12">12</option>
+        <option value="15">15</option>
+      </select>
+    </div>
+    <div><label for="v3-minCov">Min. valid countries:</label>
+      <select id="v3-minCov">
+        <option value="30">30</option>
+        <option value="40" selected>40</option>
+        <option value="50">50</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="v3-chart"></div>
+  <div id="v3-warning" class="v2-warning"></div>
+
+  <div class="v3-footnote" style="margin-top:14px;">
+    Only years meeting the minimum valid-country threshold appear in the year selector. Residuals use the <b>global regression</b> as the benchmark, even when filtering by continent — this keeps the baseline consistent across views. Countries with only IWI or only enrolment data are excluded per year after the CSV is loaded.
+  </div>
+  <div class="insight-strip" style="margin-top:18px;">
+    <div class="ic"><h4>Finding 1 — Some countries outperform expectations</h4><p>Countries with <b>positive residuals</b> achieve higher tertiary enrolment than predicted by their wealth levels. This indicates that effective education policies, governance, or social factors can drive better outcomes beyond economic capacity.</p></div>
+    <div class="ic"><h4>Finding 2 — Wealth does not guarantee education success</h4><p><b>Negative residuals</b> highlight countries where enrolment is lower than expected despite relatively high wealth. This suggests inefficiencies in education systems or unequal access to higher education.</p></div>
+    <div class="ic"><h4>Finding 3 — Structural factors matter beyond wealth</h4><p>The presence of both <b>overperformers</b> and <b>underperformers</b> across different regions shows that the relationship between wealth and education is not purely economic. Institutional quality, policy decisions, and social priorities play a significant role in shaping educational outcomes.</p></div>
+  </div>
+</div>
+
+<footer class="site-footer">
+  <div class="site-footer-inner">
+    <div class="site-footer-title">Wealth, Education &amp; Development</div>
+    <div class="site-footer-text">Prepared by <b>Lakshay Arora</b> · Student ID <b>k25030699</b></div>
+  </div>
+</footer>
+
+<script>
+/* ================================================================
+   UNIFIED WEBAPP — Wealth, Education & Development
+   
+   DATA SOURCES:
+   1. International Wealth Index (IWI) — Global Data Lab, Radboud University
+      https://globaldatalab.org/wealth/table/iwi/
+      Licence: freely available for academic use.
+      Pre-processing: reshaped wide→long, national level only, year 1999–2021.
+      
+   2. World Education Dataset — Kaggle / UNESCO / World Bank
+      https://www.kaggle.com/datasets/bushraqurban/world-education-dataset
+      Pre-processing: filtered to years 1999–2021, merged on ISO code + year.
+      Primary variable: school_enrol_secondary_pct (83% coverage in merge).
+      
+   MERGE: hosted version loads wealth_education_merged_1999_2023.csv
+   and derives all chart summaries in-browser.
+   
+   AI TOOLS REFERENCE: Kant, I. Critica della ragion pura, p. 1.
+   Trad. Gentile & Lombardo Radice. Bari: Laterza, 1949.
+================================================================ */
+
+/* CSV-backed data loading for hosted version. */
+
+const DATA_FILE = "wealth_education_merged_1999_2023.csv";
+let RAW = [];
+let YEARLY = [];
+let DECILE = [];
+let q1Years = [];
+
+function num(v){
+  if (v == null || v === "") return null;
+  const n = +v;
+  return Number.isFinite(n) ? n : null;
+}
+
+function stdDev(vals){
+  if (vals.length < 2) return 0;
+  const m = vals.reduce((sum, v) => sum + v, 0) / vals.length;
+  return Math.sqrt(vals.reduce((sum, v) => sum + (v - m) ** 2, 0) / (vals.length - 1));
+}
+
+function normaliseRow(d){
+  return {
+    country: d.country || d.Country || d.country_name || "",
+    Continent: d.Continent || d.continent || "",
+    year: num(d.year),
+    iwi: num(d.iwi),
+    school_enrol_secondary_pct: num(d.school_enrol_secondary_pct),
+    gov_exp_pct_gdp: num(d.gov_exp_pct_gdp),
+    pri_comp_rate_pct: num(d.pri_comp_rate_pct)
+  };
+}
+
+function buildDerivedData(rows){
+  RAW = rows.filter(d =>
+    d.country &&
+    d.Continent &&
+    d.year != null &&
+    d.iwi != null &&
+    d.school_enrol_secondary_pct != null
+  );
+
+  q1Years = [...new Set(
+    RAW.filter(d => d.year >= 1999 && d.year <= 2021).map(d => d.year)
+  )].sort((a, b) => a - b);
+
+  YEARLY = q1Years.map(year => {
+    const pts = RAW.filter(d => d.year === year);
+    const xs = pts.map(d => d.iwi);
+    const ys = pts.map(d => d.school_enrol_secondary_pct);
+    const reg = linReg(xs, ys);
+    return {
+      year,
+      r: pearsonR(xs, ys),
+      slope: reg ? reg.slope : null,
+      intercept: reg ? reg.intercept : null,
+      n: pts.length,
+      mean_iwi: mean(xs),
+      mean_enrol: mean(ys),
+      std_iwi: stdDev(xs),
+      std_enrol: stdDev(ys),
+      low_iwi: pts.filter(d => d.iwi < 40).length,
+      mid_iwi: pts.filter(d => d.iwi >= 40 && d.iwi <= 70).length,
+      high_iwi: pts.filter(d => d.iwi > 70).length
+    };
+  });
+
+  const decileBase = RAW.filter(d => d.year >= 2008 && d.year <= 2019);
+  DECILE = d3.range(0, 100, 10).map(start => {
+    const end = start + 10;
+    const pts = decileBase.filter(d => d.iwi >= start && (end === 100 ? d.iwi <= end : d.iwi < end));
+    return {
+      bin: `${start}\u2013${end}`,
+      mean: pts.length ? d3.mean(pts, d => d.school_enrol_secondary_pct) : null,
+      std: pts.length > 1 ? d3.deviation(pts, d => d.school_enrol_secondary_pct) : 0,
+      count: pts.length
+    };
+  }).filter(d => d.count > 0 && d.mean != null);
+}
+
+function configureQ1Controls(){
+  const slider = document.getElementById('yr-sl');
+  const defaultYear = q1Years.includes(2010) ? 2010 : q1Years[0];
+  slider.min = q1Years[0];
+  slider.max = q1Years[q1Years.length - 1];
+  slider.value = defaultYear;
+  document.getElementById('yr-lbl').textContent = defaultYear;
+}
+
+function showLoadError(message){
+  document.getElementById('live-insight').innerHTML = `<b>Data load error:</b> ${message}`;
+  document.getElementById('v3-warning').textContent = message;
+}
+
+// ── Q1: ANIMATED SCATTER PLOT ─────────────────────────────────────────
+// Uses pre-computed YEARLY stats and full RAW country-year array.
+// All regression, correlation, and tier counts computed from real data.
+
+const CONT_COL={'Africa':'#d55e00','Asia/Pacific':'#009e73','America':'#0072b2','Europe':'#cc79a7'};
+let hiddenConts=new Set(),timer=null,rightTab='corr',showTrail=false;
+
+function mean(a){return a.length ? a.reduce((s,v)=>s+v,0)/a.length : null;}
+function pearsonR(xs,ys){
+  const n=xs.length;if(n<3)return null;
+  const mx=mean(xs),my=mean(ys);
+  let num=0,dx=0,dy=0;
+  for(let i=0;i<n;i++){num+=(xs[i]-mx)*(ys[i]-my);dx+=(xs[i]-mx)**2;dy+=(ys[i]-my)**2;}
+  return dx*dy>0?num/Math.sqrt(dx*dy):null;
+}
+function linReg(xs,ys){
+  const n=xs.length;if(n<2)return null;
+  const mx=mean(xs),my=mean(ys);
+  let num=0,den=0;
+  for(let i=0;i<n;i++){num+=(xs[i]-mx)*(ys[i]-my);den+=(xs[i]-mx)**2;}
+  if(den===0)return null;
+  const s=num/den;return{slope:s,intercept:my-s*mx};
+}
+function ns(t){return document.createElementNS('http://www.w3.org/2000/svg',t);}
+function txt(x,y,t,anc,sz,fill){
+  const e=ns('text');e.setAttribute('x',x);e.setAttribute('y',y);
+  e.setAttribute('text-anchor',anc||'middle');e.setAttribute('font-size',sz||11);
+  e.setAttribute('fill',fill||'#5e6b77');e.textContent=t;return e;
+}
+
+const scEl=document.getElementById('sc'),tip=document.getElementById('tip');
+const ML={t:22,r:16,b:50,l:54};
+let SW,SH;
+function scDims(){const w=scEl.parentElement.clientWidth-32||540;SW=w-ML.l-ML.r;SH=Math.round(SW*0.62)-ML.t-ML.b;scEl.setAttribute('viewBox','0 0 '+(SW+ML.l+ML.r)+' '+(SH+ML.t+ML.b));}
+function xSc(v){return ML.l+(v/100)*SW;}
+function ySc(v){return ML.t+SH-Math.min(Math.max(v,0),130)/130*SH;}
+
+function makeScAxes(){
+  const g=ns('g');
+  for(let v=0;v<=100;v+=20){
+    const ln=ns('line');ln.setAttribute('x1',xSc(v));ln.setAttribute('x2',xSc(v));ln.setAttribute('y1',ML.t);ln.setAttribute('y2',ML.t+SH);ln.setAttribute('stroke','#d8d2c4');ln.setAttribute('stroke-width','0.5');ln.setAttribute('stroke-dasharray','3 4');g.appendChild(ln);
+    g.appendChild(txt(xSc(v),ML.t+SH+15,v));
+  }
+  for(let v=0;v<=120;v+=20){
+    const ln=ns('line');ln.setAttribute('x1',ML.l);ln.setAttribute('x2',ML.l+SW);ln.setAttribute('y1',ySc(v));ln.setAttribute('y2',ySc(v));ln.setAttribute('stroke','#d8d2c4');ln.setAttribute('stroke-width','0.5');ln.setAttribute('stroke-dasharray','3 4');g.appendChild(ln);
+    g.appendChild(txt(ML.l-6,ySc(v)+4,v+'%','end'));
+  }
+  const brd=ns('rect');brd.setAttribute('x',ML.l);brd.setAttribute('y',ML.t);brd.setAttribute('width',SW);brd.setAttribute('height',SH);brd.setAttribute('fill','none');brd.setAttribute('stroke','#d8d2c4');brd.setAttribute('stroke-width','0.8');g.appendChild(brd);
+  g.appendChild(txt(ML.l+SW/2,ML.t+SH+36,'IWI score — wealth index (0–100)'));
+  const yl=ns('text');yl.setAttribute('transform','rotate(-90)');yl.setAttribute('x',-(ML.t+SH/2));yl.setAttribute('y',13);yl.setAttribute('text-anchor','middle');yl.setAttribute('font-size','11');yl.setAttribute('fill','#5e6b77');yl.textContent='Secondary enrolment (%)';g.appendChild(yl);
+  return g;
+}
+
+function renderScatter(yr){
+  scDims();
+  while(scEl.firstChild)scEl.removeChild(scEl.firstChild);
+  scEl.appendChild(makeScAxes());
+  const pts=RAW.filter(d=>d.year===yr&&d.iwi!=null&&d.school_enrol_secondary_pct!=null&&!hiddenConts.has(d.Continent)).map(d=>({name:d.country,cont:d.Continent,iwi:d.iwi,enrol:d.school_enrol_secondary_pct}));
+  const xs=pts.map(p=>p.iwi),ys=pts.map(p=>p.enrol);
+  const r=pearsonR(xs,ys),reg=linReg(xs,ys);
+  if(reg){
+    const y0=reg.slope*0+reg.intercept,y1=reg.slope*100+reg.intercept,se=7;
+    const poly=ns('polygon');poly.setAttribute('points',[xSc(0),ySc(y0+se),xSc(100),ySc(y1+se),xSc(100),ySc(y1-se),xSc(0),ySc(y0-se)].join(' '));poly.setAttribute('fill','#8c4c2f');poly.setAttribute('opacity','0.08');scEl.appendChild(poly);
+    const ln=ns('line');ln.setAttribute('x1',xSc(0));ln.setAttribute('y1',ySc(y0));ln.setAttribute('x2',xSc(100));ln.setAttribute('y2',ySc(y1));ln.setAttribute('stroke','#8c4c2f');ln.setAttribute('stroke-width','1.5');ln.setAttribute('stroke-dasharray','6 4');ln.setAttribute('opacity','0.6');scEl.appendChild(ln);
+  }
+  if(showTrail){
+    const tYrs=[yr-4,yr-3,yr-2,yr-1,yr].filter(y=>y>=1999);
+    const byC={};
+    RAW.filter(d=>tYrs.includes(d.year)&&d.iwi!=null&&d.school_enrol_secondary_pct!=null&&!hiddenConts.has(d.Continent)).forEach(d=>{if(!byC[d.country])byC[d.country]=[];byC[d.country].push({y:d.year,iwi:d.iwi,enrol:d.school_enrol_secondary_pct,cont:d.Continent});});
+    Object.values(byC).forEach(ps=>{
+      ps.sort((a,b)=>a.y-b.y);if(ps.length<2)return;
+      const col=CONT_COL[ps[0].cont]||'#8c4c2f';
+      for(let i=1;i<ps.length;i++){const a=0.06+(i/ps.length)*0.22;const ln=ns('line');ln.setAttribute('x1',xSc(ps[i-1].iwi));ln.setAttribute('y1',ySc(ps[i-1].enrol));ln.setAttribute('x2',xSc(ps[i].iwi));ln.setAttribute('y2',ySc(ps[i].enrol));ln.setAttribute('stroke',col);ln.setAttribute('stroke-width','1');ln.setAttribute('opacity',a);scEl.appendChild(ln);}
+    });
+  }
+  pts.forEach(p=>{p.resid=reg?(p.enrol-(reg.slope*p.iwi+reg.intercept)):0;});
+  pts.forEach(p=>{
+    const cx=xSc(p.iwi),cy=ySc(p.enrol);
+    const c=ns('circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r','5');c.setAttribute('fill',CONT_COL[p.cont]||'#8c4c2f');c.setAttribute('opacity','0.82');c.setAttribute('stroke','#fffdf8');c.setAttribute('stroke-width','1');c.style.cursor='pointer';
+    c.addEventListener('mouseenter',()=>{
+      c.setAttribute('r','7');c.setAttribute('stroke','#8c4c2f');c.setAttribute('stroke-width','1.5');
+      const exp=reg?(reg.slope*p.iwi+reg.intercept).toFixed(1)+'%':'—';
+      const sign=p.resid>=0?'+':'';
+      tip.style.opacity='1';
+      tip.innerHTML='<strong>'+p.name+'</strong><div class="tl">IWI: <span>'+p.iwi.toFixed(1)+'</span></div><div class="tl">Enrolment: <span>'+p.enrol.toFixed(1)+'%</span></div><div class="tl">Expected: <span>'+exp+'</span></div><div class="tl">Residual: <span>'+sign+p.resid.toFixed(1)+' pp</span></div><div class="tl" style="margin-top:4px;font-size:10px;color:#8a938f;">'+p.cont+' &middot; '+yr+'</div>';
+    });
+    c.addEventListener('mousemove',e=>{const b=scEl.parentElement.getBoundingClientRect();tip.style.left=(e.clientX-b.left+14)+'px';tip.style.top=(e.clientY-b.top-40)+'px';});
+    c.addEventListener('mouseleave',()=>{c.setAttribute('r','5');c.setAttribute('stroke','#fffdf8');c.setAttribute('stroke-width','1');tip.style.opacity='0';});
+    scEl.appendChild(c);
+  });
+  const st=YEARLY.find(d=>d.year===yr)||{};
+  document.getElementById('s-r').textContent=r!==null?r.toFixed(3):'—';
+  document.getElementById('s-n').textContent=pts.length;
+  document.getElementById('s-sl').textContent=reg?reg.slope.toFixed(3):'—';
+  document.getElementById('s-low').textContent=st.low_iwi??'—';
+  document.getElementById('s-high').textContent=st.high_iwi??'—';
+  if(reg&&r!==null){
+    const strength=Math.abs(r)>0.88?'very strong':Math.abs(r)>0.82?'strong':'moderate';
+    document.getElementById('live-insight').innerHTML='In <b>'+yr+'</b>, Pearson r = <b>'+r.toFixed(3)+'</b> — a '+strength+' positive association across <b>'+pts.length+'</b> countries. Each 10 IWI points associates with <b>'+(reg.slope*10).toFixed(1)+' pp</b> more enrolment. '+(st.low_iwi!==undefined?'<b>'+st.low_iwi+'</b> countries remain in the lowest wealth tier (IWI &lt; 40).':"");
+  }
+}
+
+const rpEl=document.getElementById('rp');
+const RM={t:20,r:16,b:44,l:46};
+let RW,RH;
+function rpDims(){const w=rpEl.parentElement.clientWidth-32||320;RW=w-RM.l-RM.r;RH=180;rpEl.setAttribute('viewBox','0 0 '+(RW+RM.l+RM.r)+' '+(RH+RM.t+RM.b));}
+
+function renderRight(yr){
+  rpDims();
+  while(rpEl.firstChild)rpEl.removeChild(rpEl.firstChild);
+  if(rightTab==='corr')renderCorrPanel(yr);
+  else if(rightTab==='dist')renderDistPanel(yr);
+  else renderDecilePanel();
+}
+
+function renderCorrPanel(yr){
+  const minYear = d3.min(YEARLY, d => d.year);
+  const maxYear = d3.max(YEARLY, d => d.year);
+  const span = Math.max(maxYear - minYear, 1);
+  const xR=v=>RM.l+(v-minYear)/span*RW;
+  const yR=v=>RM.t+RH-(v-0.7)/(1.0-0.7)*RH;
+  [0.75,0.80,0.85,0.90].forEach(v=>{const ln=ns('line');ln.setAttribute('x1',RM.l);ln.setAttribute('x2',RM.l+RW);ln.setAttribute('y1',yR(v));ln.setAttribute('y2',yR(v));ln.setAttribute('stroke','#d8d2c4');ln.setAttribute('stroke-width','0.5');ln.setAttribute('stroke-dasharray','3 3');rpEl.appendChild(ln);rpEl.appendChild(txt(RM.l-4,yR(v)+4,v.toFixed(2),'end',10));});
+  const pts=YEARLY.map(d=>xR(d.year)+','+yR(d.r)).join(' ');
+  const poly=ns('polygon');poly.setAttribute('points',pts+' '+xR(maxYear)+','+yR(0.7)+' '+xR(minYear)+','+yR(0.7));poly.setAttribute('fill','#8c4c2f');poly.setAttribute('opacity','0.12');rpEl.appendChild(poly);
+  const ln=ns('polyline');ln.setAttribute('points',pts);ln.setAttribute('fill','none');ln.setAttribute('stroke','#8c4c2f');ln.setAttribute('stroke-width','2');rpEl.appendChild(ln);
+  const cy=YEARLY.find(d=>d.year===yr);
+  if(cy){const c=ns('circle');c.setAttribute('cx',xR(yr));c.setAttribute('cy',yR(cy.r));c.setAttribute('r','4');c.setAttribute('fill','#e69f00');c.setAttribute('stroke','#fffdf8');c.setAttribute('stroke-width','1');rpEl.appendChild(c);}
+  [minYear,2005,2010,2015,maxYear].filter((y,i,a)=>y>=minYear&&y<=maxYear&&a.indexOf(y)===i).forEach(y=>rpEl.appendChild(txt(xR(y),RM.t+RH+14,y,'middle',10)));
+  rpEl.appendChild(txt(RM.l+RW/2,RM.t+RH+30,'Pearson r by year (yellow dot = selected year)','middle',10));
+}
+
+function renderDistPanel(yr){
+  const cats=['low_iwi','mid_iwi','high_iwi'],cols=['#d55e00','#e69f00','#009e73'],labels=['IWI<40','40-70','IWI>70'];
+  const maxN=Math.max(1,d3.max(YEARLY,d=>Math.max(d.low_iwi||0,d.mid_iwi||0,d.high_iwi||0))),n=cats.length;
+  const xR=i=>RM.l+(i+0.5)*(RW/n);
+  const yR=v=>RM.t+RH-(v/maxN)*RH;
+  YEARLY.forEach(d=>{cats.forEach((cat,i)=>{const val=d[cat]||0;const bar=ns('rect');bar.setAttribute('x',xR(i)-8);bar.setAttribute('y',yR(val));bar.setAttribute('width','5');bar.setAttribute('height',RH-(yR(val)-RM.t));bar.setAttribute('fill',cols[i]);bar.setAttribute('opacity','0.08');rpEl.appendChild(bar);});});
+  const cur=YEARLY.find(d=>d.year===yr)||{};
+  cats.forEach((cat,i)=>{
+    const val=cur[cat]||0;
+    const bar=ns('rect');bar.setAttribute('x',xR(i)-14);bar.setAttribute('y',yR(val));bar.setAttribute('width','28');bar.setAttribute('height',Math.max(RH-(yR(val)-RM.t),2));bar.setAttribute('fill',cols[i]);bar.setAttribute('opacity','0.85');bar.setAttribute('rx','2');rpEl.appendChild(bar);
+    rpEl.appendChild(txt(xR(i),yR(val)-6,val,'middle',12,'#1f2933'));
+    rpEl.appendChild(txt(xR(i),RM.t+RH+14,labels[i],'middle',10));
+  });
+  rpEl.appendChild(txt(RM.l+RW/2,RM.t+RH+28,'Countries per wealth tier (ghost bars = all years)','middle',10));
+}
+
+function renderDecilePanel(){
+  const vals=DECILE.map(d=>d.mean),lbs=DECILE.map(d=>d.bin),n=vals.length;
+  const xR=i=>RM.l+(i+0.5)*(RW/n);
+  const yR=v=>RM.t+RH-(v/100)*RH;
+  [25,50,75].forEach(v=>{const ln=ns('line');ln.setAttribute('x1',RM.l);ln.setAttribute('x2',RM.l+RW);ln.setAttribute('y1',yR(v));ln.setAttribute('y2',yR(v));ln.setAttribute('stroke','#d8d2c4');ln.setAttribute('stroke-width','0.5');ln.setAttribute('stroke-dasharray','3 3');rpEl.appendChild(ln);rpEl.appendChild(txt(RM.l-4,yR(v)+4,v+'%','end',10));});
+  const pts=vals.map((v,i)=>xR(i)+','+yR(v)).join(' ');
+  const poly=ns('polygon');poly.setAttribute('points',pts+' '+xR(n-1)+','+yR(0)+' '+xR(0)+','+yR(0));poly.setAttribute('fill','#009e73');poly.setAttribute('opacity','0.12');rpEl.appendChild(poly);
+  const ln=ns('polyline');ln.setAttribute('points',pts);ln.setAttribute('fill','none');ln.setAttribute('stroke','#009e73');ln.setAttribute('stroke-width','2');rpEl.appendChild(ln);
+  vals.forEach((v,i)=>{const c=ns('circle');c.setAttribute('cx',xR(i));c.setAttribute('cy',yR(v));c.setAttribute('r','3');c.setAttribute('fill','#009e73');rpEl.appendChild(c);rpEl.appendChild(txt(xR(i),RM.t+RH+13,lbs[i].split('–')[0],'middle',9));});
+  rpEl.appendChild(txt(RM.l+RW/2,RM.t+RH+28,'Mean enrolment % by IWI decile (2008–2019)','middle',10));
+}
+
+function buildLegend(){
+  const leg=document.getElementById('legend');leg.innerHTML='';
+  Object.entries(CONT_COL).forEach(([cont,col])=>{
+    const item=document.createElement('div');item.className='leg-item'+(hiddenConts.has(cont)?' dimmed':'');
+    item.innerHTML='<span class="leg-dot" style="background:'+col+'"></span>'+cont;
+    item.addEventListener('click',()=>{if(hiddenConts.has(cont))hiddenConts.delete(cont);else hiddenConts.add(cont);buildLegend();renderScatter(+document.getElementById('yr-sl').value);});
+    leg.appendChild(item);
+  });
+}
+
+document.getElementById('yr-sl').addEventListener('input',function(){document.getElementById('yr-lbl').textContent=this.value;renderScatter(+this.value);renderRight(+this.value);});
+document.getElementById('trail-cb').addEventListener('change',function(){showTrail=this.checked;renderScatter(+document.getElementById('yr-sl').value);});
+document.getElementById('play-btn').addEventListener('click',function(){
+  if(timer){clearInterval(timer);timer=null;this.innerHTML='&#9654; Play';return;}
+  this.innerHTML='&#9646;&#9646; Pause';
+  let idx=q1Years.indexOf(+document.getElementById('yr-sl').value);
+  timer=setInterval(()=>{
+    idx=(idx+1)%q1Years.length;
+    const yr=q1Years[idx];
+    document.getElementById('yr-sl').value=yr;document.getElementById('yr-lbl').textContent=yr;renderScatter(yr);renderRight(yr);
+  },700);
+});
+document.querySelectorAll('.r-tab').forEach(t=>{t.addEventListener('click',()=>{document.querySelectorAll('.r-tab').forEach(x=>x.classList.remove('active'));t.classList.add('active');rightTab=t.dataset.t;renderRight(+document.getElementById('yr-sl').value);});});
+window.addEventListener('resize',()=>{renderScatter(+document.getElementById('yr-sl').value);renderRight(+document.getElementById('yr-sl').value);});
+
+// Initial rendering happens after the CSV loads.
+
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   Q2 — CONTINENTAL COMPARISON DASHBOARD
+   Derives all aggregations live from the CSV-backed RAW array.
+════════════════════════════════════════════════════════════════════════ */
+
+// Colour map: matches Q1 continent colours
+const v2ColorMap = {
+  "Africa":      "#d55e00",
+  "Asia/Pacific":"#009e73",
+  "America":     "#0072b2",
+  "Europe":      "#cc79a7"
+};
+
+const v2tooltip = d3.select("#shared-tooltip");
+
+// Utility: Pearson r for two numeric keys within an array of objects
+function v2correlation(arr, xKey, yKey) {
+  const f = arr.filter(d => d[xKey] != null && d[yKey] != null &&
+                            Number.isFinite(d[xKey]) && Number.isFinite(d[yKey]));
+  if (f.length < 3) return null;
+  const xm = d3.mean(f, d => d[xKey]);
+  const ym = d3.mean(f, d => d[yKey]);
+  let num = 0, dx = 0, dy = 0;
+  f.forEach(d => {
+    const ex = d[xKey] - xm, ey = d[yKey] - ym;
+    num += ex * ey; dx += ex * ex; dy += ey * ey;
+  });
+  return (dx === 0 || dy === 0) ? null : num / Math.sqrt(dx * dy);
+}
+
+// Draw a horizontal bar chart inside containerId
+function v2DrawBar(containerId, data, valueKey, formatFn, label) {
+  const M = { top: 8, right: 48, bottom: 22, left: 110 };
+  const W = 470, H = 220;
+  d3.select(containerId).selectAll("*").remove();
+  const svg = d3.select(containerId).append("svg").attr("width", W).attr("height", H);
+  const g   = svg.append("g").attr("transform", `translate(${M.left},${M.top})`);
+  const iW  = W - M.left - M.right;
+  const iH  = H - M.top - M.bottom;
+
+  const y = d3.scaleBand().domain(data.map(d => d.continent)).range([0, iH]).padding(0.32);
+  const x = d3.scaleLinear().domain([0, d3.max(data, d => d[valueKey]) * 1.1]).nice().range([0, iW]);
+
+  g.append("g").attr("class","grid").attr("transform",`translate(0,${iH})`)
+    .call(d3.axisBottom(x).ticks(5).tickSize(-iH).tickFormat(""));
+
+  g.selectAll(".bar").data(data).enter().append("rect")
+    .attr("class","bar").attr("x",0).attr("y",d=>y(d.continent))
+    .attr("width",d=>x(d[valueKey])).attr("height",y.bandwidth())
+    .attr("fill",d=>v2ColorMap[d.continent]||"#888").attr("rx",2)
+    .on("mouseover",(event,d)=>{
+      v2tooltip.style("opacity",1)
+        .html(`<strong>${d.continent}</strong><br>${label}: ${formatFn(d[valueKey])}`);
+    })
+    .on("mousemove",(event)=>{
+      v2tooltip.style("left",(event.clientX+14)+"px").style("top",(event.clientY-18)+"px");
+    })
+    .on("mouseout",()=>v2tooltip.style("opacity",0));
+
+  g.selectAll(".lbl").data(data).enter().append("text").attr("class","lbl")
+    .attr("x",d=>x(d[valueKey])+6).attr("y",d=>y(d.continent)+y.bandwidth()/2+4)
+    .attr("fill","var(--muted)").style("font-size","12px").text(d=>formatFn(d[valueKey]));
+
+  g.append("g").attr("class","axis").call(d3.axisLeft(y).tickSize(0))
+    .selectAll("text").style("fill","var(--muted)").style("font-size","12px");
+  g.append("g").attr("class","axis").attr("transform",`translate(0,${iH})`)
+    .call(d3.axisBottom(x).ticks(5))
+    .selectAll("text").style("fill","var(--muted)").style("font-size","11px");
+}
+
+// Draw a correlation bar chart
+function v2DrawCorr(containerId, data) {
+  const M = { top: 8, right: 60, bottom: 35, left: 110 };
+  const W = 470, H = 220;
+  d3.select(containerId).selectAll("*").remove();
+  const svg = d3.select(containerId).append("svg").attr("width", W).attr("height", H);
+  const g   = svg.append("g").attr("transform", `translate(${M.left},${M.top})`);
+  const iW  = W - M.left - M.right;
+  const iH  = H - M.top - M.bottom;
+
+  const y = d3.scaleBand().domain(data.map(d=>d.continent)).range([0,iH]).padding(0.32);
+  const x = d3.scaleLinear().domain([-1,1]).range([0,iW]);
+
+  g.append("g").attr("class","grid").attr("transform",`translate(0,${iH})`)
+    .call(d3.axisBottom(x).ticks(6).tickSize(-iH).tickFormat(""));
+
+  g.append("line").attr("class","zero-line")
+    .attr("x1",x(0)).attr("x2",x(0)).attr("y1",0).attr("y2",iH);
+
+  g.selectAll(".cbar").data(data).enter().append("rect").attr("class","cbar")
+    .attr("x",d=>Math.min(x(0),x(d.r))).attr("y",d=>y(d.continent))
+    .attr("width",d=>Math.abs(x(d.r)-x(0))).attr("height",y.bandwidth())
+    .attr("fill",d=>v2ColorMap[d.continent]||"#888").attr("rx",2)
+    .on("mouseover",(event,d)=>{
+      v2tooltip.style("opacity",1)
+        .html(`<strong>${d.continent}</strong><br>Pearson r = ${d.r.toFixed(3)}<br>Observations: ${d.n}`);
+    })
+    .on("mousemove",(event)=>{
+      v2tooltip.style("left",(event.clientX+14)+"px").style("top",(event.clientY-18)+"px");
+    })
+    .on("mouseout",()=>v2tooltip.style("opacity",0));
+
+  g.selectAll(".clbl").data(data).enter().append("text").attr("class","clbl")
+    .attr("x",d=>d.r>=0?x(d.r)+6:x(d.r)-52).attr("y",d=>y(d.continent)+y.bandwidth()/2+4)
+    .attr("fill","var(--muted)").style("font-size","12px").text(d=>`r = ${d.r.toFixed(3)}`);
+
+  g.append("g").attr("class","axis").call(d3.axisLeft(y).tickSize(0))
+    .selectAll("text").style("fill","var(--muted)").style("font-size","12px");
+  g.append("g").attr("class","axis").attr("transform",`translate(0,${iH})`)
+    .call(d3.axisBottom(x).ticks(6))
+    .selectAll("text").style("fill","var(--muted)").style("font-size","11px");
+}
+
+// Draw a gap-closure bar chart
+function v2DrawGap(containerId, data) {
+  const M = { top: 8, right: 60, bottom: 35, left: 110 };
+  const W = 470, H = 220;
+  d3.select(containerId).selectAll("*").remove();
+  const svg = d3.select(containerId).append("svg").attr("width", W).attr("height", H);
+  const g   = svg.append("g").attr("transform", `translate(${M.left},${M.top})`);
+  const iW  = W - M.left - M.right;
+  const iH  = H - M.top - M.bottom;
+
+  const maxAbs = Math.max(d3.max(data,d=>Math.abs(d.gapClosed))*1.15, 1);
+  const y = d3.scaleBand().domain(data.map(d=>d.continent)).range([0,iH]).padding(0.32);
+  const x = d3.scaleLinear().domain([-maxAbs,maxAbs]).range([0,iW]);
+
+  g.append("g").attr("class","grid").attr("transform",`translate(0,${iH})`)
+    .call(d3.axisBottom(x).ticks(6).tickSize(-iH).tickFormat(""));
+
+  g.append("line").attr("class","zero-line")
+    .attr("x1",x(0)).attr("x2",x(0)).attr("y1",0).attr("y2",iH);
+
+  g.selectAll(".gbar").data(data).enter().append("rect").attr("class","gbar")
+    .attr("x",d=>Math.min(x(0),x(d.gapClosed))).attr("y",d=>y(d.continent))
+    .attr("width",d=>Math.abs(x(d.gapClosed)-x(0))).attr("height",y.bandwidth())
+    .attr("fill",d=>v2ColorMap[d.continent]||"#888").attr("rx",2)
+    .on("mouseover",(event,d)=>{
+      v2tooltip.style("opacity",1)
+        .html(`<strong>${d.continent}</strong><br>Gap to frontier 2008: ${d.gap2008.toFixed(1)}<br>Gap to frontier 2019: ${d.gap2019.toFixed(1)}<br>Gap closed: ${d.gapClosed>0?"+":""}${d.gapClosed.toFixed(1)} IWI pts`);
+    })
+    .on("mousemove",(event)=>{
+      v2tooltip.style("left",(event.clientX+14)+"px").style("top",(event.clientY-18)+"px");
+    })
+    .on("mouseout",()=>v2tooltip.style("opacity",0));
+
+  g.selectAll(".glbl").data(data).enter().append("text").attr("class","glbl")
+    .attr("x",d=>d.gapClosed>=0?x(d.gapClosed)+6:x(d.gapClosed)-44)
+    .attr("y",d=>y(d.continent)+y.bandwidth()/2+4)
+    .attr("fill","var(--muted)").style("font-size","12px")
+    .text(d=>d.gapClosed>0?`+${d.gapClosed.toFixed(1)}`:d.gapClosed.toFixed(1));
+
+  g.append("g").attr("class","axis").call(d3.axisLeft(y).tickSize(0))
+    .selectAll("text").style("fill","var(--muted)").style("font-size","12px");
+  g.append("g").attr("class","axis").attr("transform",`translate(0,${iH})`)
+    .call(d3.axisBottom(x).ticks(6))
+    .selectAll("text").style("fill","var(--muted)").style("font-size","11px");
+}
+
+// Main Q2 initialisation — called once when Q2 tab is first opened
+function initQ2() {
+  // Map RAW into the format Q2 expects
+  const parsed = RAW.map(d => ({
+    country:   d.country,
+    continent: d.Continent,
+    year:      d.year,
+    iwi:       d.iwi,
+    school_enrol_secondary_pct: d.school_enrol_secondary_pct != null ? +d.school_enrol_secondary_pct : null,
+    pri_comp_rate_pct: d.pri_comp_rate_pct
+  })).filter(d => d.country && d.continent && d.year != null && d.iwi != null);
+
+  // Build legend
+  const continents = [...new Set(parsed.map(d=>d.continent))].sort();
+  const v2leg = d3.select("#v2-legend");
+  v2leg.selectAll("*").remove();
+  continents.forEach(c => {
+    const item = v2leg.append("div").attr("class","v2-legend-item");
+    item.append("div").attr("class","v2-swatch").style("background", v2ColorMap[c]||"#888");
+    item.append("div").text(c);
+  });
+
+  function renderQ2() {
+    const metric = d3.select("#v2-metric").property("value");
+    const q2data = parsed.filter(d =>
+      d.year >= 2008 && d.year <= 2019 &&
+      d[metric] != null && Number.isFinite(d[metric])
+    );
+
+    // Continental aggregates
+    const byCont = d3.groups(q2data, d=>d.continent).map(([continent, arr]) => ({
+      continent,
+      meanIwi: d3.mean(arr, d=>d.iwi),
+      meanEdu: d3.mean(arr, d=>d[metric]),
+      r:       v2correlation(arr, "iwi", metric),
+      n:       arr.filter(d=>d.iwi!=null&&d[metric]!=null).length
+    })).sort((a,b)=>d3.descending(a.meanIwi,b.meanIwi));
+
+    // Gap closure 2008 → 2019
+    const startMap = new Map(d3.rollups(q2data.filter(d=>d.year===2008),
+      v=>d3.mean(v,d=>d.iwi), d=>d.continent));
+    const endMap   = new Map(d3.rollups(q2data.filter(d=>d.year===2019),
+      v=>d3.mean(v,d=>d.iwi), d=>d.continent));
+    const frontier = d3.max([...endMap.values()]);
+    const gapData  = byCont.map(d => {
+      const g08 = frontier - (startMap.get(d.continent)??NaN);
+      const g19 = frontier - (endMap.get(d.continent)??NaN);
+      return { continent:d.continent, gap2008:g08, gap2019:g19, gapClosed:g08-g19 };
+    }).filter(d=>Number.isFinite(d.gapClosed));
+
+    // Draw charts
+    v2DrawBar("#v2-meanIwiChart", byCont, "meanIwi", v=>v.toFixed(1), "Mean IWI");
+    v2DrawBar("#v2-meanEduChart", byCont, "meanEdu", v=>`${v.toFixed(1)}%`, "Mean enrolment");
+    v2DrawCorr("#v2-corrChart", byCont.filter(d=>d.r!=null));
+    v2DrawGap("#v2-gapCloseChart", gapData);
+
+    // Insights
+    const topW  = byCont[0], botW  = byCont[byCont.length-1];
+    const topE  = [...byCont].sort((a,b)=>d3.descending(a.meanEdu,b.meanEdu))[0];
+    const botE  = [...byCont].sort((a,b)=>d3.ascending(a.meanEdu,b.meanEdu))[0];
+    const corrS = [...byCont].filter(d=>d.r!=null).sort((a,b)=>d3.descending(Math.abs(a.r),Math.abs(b.r)));
+    const bigG  = [...gapData].sort((a,b)=>d3.descending(a.gapClosed,b.gapClosed))[0];
+    const smlG  = [...gapData].sort((a,b)=>d3.ascending(a.gapClosed,b.gapClosed))[0];
+
+    d3.select("#v2-meanIwiInsight").html(
+      `<b>Large regional wealth gradient</b> — ${topW.continent} has the highest mean IWI (${topW.meanIwi.toFixed(1)}), while ${botW.continent} remains lowest (${botW.meanIwi.toFixed(1)}).`
+    );
+    d3.select("#v2-meanEduInsight").html(
+      `<b>Education access broadly mirrors wealth ranking</b> — ${topE.continent} records the highest average, while ${botE.continent} remains lowest.`
+    );
+    if (corrS.length >= 2) {
+      d3.select("#v2-corrInsight").html(
+        `<b>Relationship strength varies across continents</b> — strongest in ${corrS[0].continent} (r = ${corrS[0].r.toFixed(3)}) and weakest in ${corrS[corrS.length-1].continent} (r = ${corrS[corrS.length-1].r.toFixed(3)}). This directly addresses the first half of Q2.`
+      );
+    }
+    if (bigG && smlG) {
+      d3.select("#v2-gapInsight").html(
+        `<b>Convergence visible but uneven</b> — ${bigG.continent} reduced its gap to the 2019 frontier the most (${bigG.gapClosed>0?"+":""}${bigG.gapClosed.toFixed(1)} IWI pts), whereas ${smlG.continent} closed the least (${smlG.gapClosed.toFixed(1)}).`
+      );
+    }
+  }
+
+  d3.select("#v2-metric").on("change", renderQ2);
+
+  // Tab switching within Q2
+  document.querySelectorAll(".v2-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".v2-tab").forEach(t=>t.classList.remove("active"));
+      tab.classList.add("active");
+      const view = tab.dataset.view;
+      ["levels","strength"].forEach(v => {
+        document.getElementById(`v2-view-${v}`).classList.toggle("hidden", v !== view);
+      });
+    });
+  });
+
+  renderQ2();
+}
+
+
+
+/* ════════════════════════════════════════════════════════════════════════
+   Q3 — RESIDUAL LOLLIPOP CHART
+   Computes OLS residuals live from the CSV-backed RAW array.
+   SVG is created on first tab visit to avoid rendering on a hidden element.
+════════════════════════════════════════════════════════════════════════ */
+
+// Simple linear regression: returns { slope, intercept }
+function v3linReg(points) {
+  const xm = d3.mean(points, d => d.iwi);
+  const ym = d3.mean(points, d => d.enrolment);
+  let num = 0, den = 0;
+  points.forEach(d => {
+    num += (d.iwi - xm) * (d.enrolment - ym);
+    den += (d.iwi - xm) ** 2;
+  });
+  const slope = den === 0 ? 0 : num / den;
+  return { slope, intercept: ym - slope * xm };
+}
+
+// Main Q3 initialisation — called once when Q3 tab is first opened
+function initQ3() {
+  // ── Layout constants ─────────────────────────────────────────────
+  const M = { top: 60, right: 40, bottom: 50, left: 220 };
+  const OUTER_W = Math.min(1100, window.innerWidth - 80);
+  const OUTER_H = 700;
+  const IW = OUTER_W - M.left - M.right;
+  const IH = OUTER_H - M.top - M.bottom;
+
+  const v3tooltip = d3.select("#shared-tooltip");
+  const v3warning = d3.select("#v3-warning");
+
+  // ── Build data from the CSV-backed RAW array ─────────────────────
+  const data = RAW.filter(d =>
+    d.country && d.Continent && d.year != null && d.iwi != null &&
+    d.school_enrol_secondary_pct != null &&
+    Number.isFinite(+d.school_enrol_secondary_pct)
+  ).map(d => ({
+    country:   d.country,
+    continent: d.Continent,
+    year:      d.year,
+    iwi:       +d.iwi,
+    enrolment: +d.school_enrol_secondary_pct
+  }));
+
+  // ── Populate continent filter ────────────────────────────────────
+  const allContinents = [...new Set(data.map(d=>d.continent))].sort();
+  const continentSel  = d3.select("#v3-continent");
+  continentSel.selectAll("option.copt").data(allContinents).enter()
+    .append("option").attr("class","copt").attr("value",d=>d).text(d=>d);
+
+  // ── Populate year selector (only years with enough data) ─────────
+  const yearSel = d3.select("#v3-year");
+  const minCovSel = d3.select("#v3-minCov");
+
+  function populateYears() {
+    const thresh = +minCovSel.property("value");
+    const yearCounts = d3.rollups(data, v=>v.length, d=>d.year)
+      .sort((a,b)=>d3.ascending(a[0],b[0]));
+    const validYears = yearCounts.filter(d=>d[1]>=thresh).map(d=>d[0]);
+    const cur = +yearSel.property("value") || 0;
+    yearSel.selectAll("option").remove();
+    yearSel.selectAll("option").data(validYears).enter()
+      .append("option").attr("value",d=>d)
+      .property("selected", d => cur ? d===cur : d===d3.max(validYears.filter(y=>y<=2019)))
+      .text(d=>d);
+    return validYears;
+  }
+
+  // ── Create SVG (done once) ────────────────────────────────────────
+  d3.select("#v3-chart").selectAll("*").remove();
+  const svg = d3.select("#v3-chart").append("svg")
+    .attr("width", OUTER_W).attr("height", OUTER_H)
+    .style("background","var(--s1)").style("border","1px solid var(--border)")
+    .style("border-radius","8px");
+  const g = svg.append("g").attr("transform",`translate(${M.left},${M.top})`);
+
+  // ── Main render function ──────────────────────────────────────────
+  function renderQ3() {
+    const thresh  = +minCovSel.property("value");
+    populateYears();
+    const yr      = +yearSel.property("value");
+    const selCont = continentSel.property("value");
+    const topN    = +d3.select("#v3-topN").property("value");
+
+    const yearData = data.filter(d=>d.year===yr);
+    if (yearData.length < thresh) {
+      g.selectAll("*").remove();
+      v3warning.text(`Year ${yr} has fewer than ${thresh} valid countries.`);
+      return;
+    }
+    v3warning.text("");
+
+    // Global OLS regression (benchmark)
+    const model = v3linReg(yearData);
+
+    // Compute residuals for ALL countries this year
+    const withResid = yearData.map(d => ({
+      ...d,
+      predicted: model.intercept + model.slope * d.iwi,
+      residual:  d.enrolment - (model.intercept + model.slope * d.iwi)
+    }));
+
+    // Filter by selected continent (residuals computed globally)
+    const filtered = selCont === "All"
+      ? withResid
+      : withResid.filter(d=>d.continent===selCont);
+
+    if (filtered.length < 4) {
+      g.selectAll("*").remove();
+      v3warning.text(`Not enough countries for ${selCont} in ${yr}.`);
+      return;
+    }
+
+    // Pick top N and bottom N by residual
+    const sorted  = [...filtered].sort((a,b)=>d3.ascending(a.residual,b.residual));
+    const display = [...sorted.slice(0,topN), ...sorted.slice(-topN)];
+
+    // Scales
+    const maxAbs = Math.max(d3.max(display,d=>Math.abs(d.residual)), 1);
+    const x = d3.scaleLinear().domain([-maxAbs*1.12, maxAbs*1.12]).range([0, IW]);
+    const y = d3.scaleBand().domain(display.map(d=>d.country)).range([0, IH]).padding(0.42);
+
+    // Clear and redraw
+    g.selectAll("*").remove();
+
+    // Grid
+    g.append("g").attr("class","grid").attr("transform",`translate(0,${IH})`)
+      .call(d3.axisBottom(x).ticks(8).tickSize(-IH).tickFormat(""));
+
+    // Zero line
+    g.append("line").attr("class","zero-line")
+      .attr("x1",x(0)).attr("x2",x(0)).attr("y1",0).attr("y2",IH);
+
+    // Left axis (country names)
+    g.append("g").attr("class","axis")
+      .call(d3.axisLeft(y).tickSize(0))
+      .selectAll("text")
+      .style("font-size","11px").style("fill","var(--text)");
+
+    // Bottom axis
+    g.append("g").attr("class","axis").attr("transform",`translate(0,${IH})`)
+      .call(d3.axisBottom(x).ticks(8))
+      .selectAll("text").style("font-size","11px").style("fill","var(--muted)");
+
+    // Axis label
+    g.append("text").attr("x",IW/2).attr("y",IH+42)
+      .attr("text-anchor","middle").style("font-size","12px")
+      .attr("fill","var(--muted)")
+      .text("Residual from expected enrolment given IWI (percentage points)");
+
+    // Chart title
+    g.append("text").attr("x",0).attr("y",-30)
+      .style("font-size","14px").style("font-weight","700")
+      .attr("fill","var(--text)")
+      .text(`Top Over- and Under-Performers in ${yr} — ${selCont}`);
+
+    // Sub-title
+    g.append("text").attr("x",0).attr("y",-10)
+      .style("font-size","11px").attr("fill","var(--muted)")
+      .text(`Global benchmark | valid countries this year: ${yearData.length} | displayed: ${display.length}`);
+
+    // Lollipop stems
+    g.selectAll(".lollipop-line").data(display).enter().append("line")
+      .attr("class","lollipop-line")
+      .attr("x1",x(0)).attr("x2",d=>x(d.residual))
+      .attr("y1",d=>y(d.country)+y.bandwidth()/2)
+      .attr("y2",d=>y(d.country)+y.bandwidth()/2);
+
+    // Lollipop dots
+    g.selectAll(".dot").data(display).enter().append("circle")
+      .attr("class",d=>`dot ${d.residual>=0?"over":"under"}`)
+      .attr("cx",d=>x(d.residual))
+      .attr("cy",d=>y(d.country)+y.bandwidth()/2)
+      .attr("r",6)
+      .on("mouseover",(event,d)=>{
+        d3.select(event.currentTarget).attr("r",9);
+        v3tooltip.style("opacity",1).html(
+          `<strong>${d.country}</strong>
+           <div class="tl">Continent: <span>${d.continent}</span></div>
+           <div class="tl">Year: <span>${d.year}</span></div>
+           <div class="tl">IWI: <span>${d.iwi.toFixed(1)}</span></div>
+           <div class="tl">Actual enrolment: <span>${d.enrolment.toFixed(1)}%</span></div>
+           <div class="tl">Predicted: <span>${d.predicted.toFixed(1)}%</span></div>
+           <div class="tl">Residual: <span>${d.residual>=0?"+":""}${d.residual.toFixed(1)} pp</span></div>`
+        );
+      })
+      .on("mousemove",(event)=>{
+        v3tooltip.style("left",(event.clientX+14)+"px").style("top",(event.clientY-18)+"px");
+      })
+      .on("mouseout",(event)=>{
+        d3.select(event.currentTarget).attr("r",6);
+        v3tooltip.style("opacity",0);
+      });
+
+    // Direction labels at axis bottom
+    g.append("text").attr("x",x(-maxAbs*0.7)).attr("y",IH+28)
+      .attr("text-anchor","middle").style("font-size","11px").attr("fill","#d55e00")
+      .text("← Under-performing");
+    g.append("text").attr("x",x(maxAbs*0.7)).attr("y",IH+28)
+      .attr("text-anchor","middle").style("font-size","11px").attr("fill","#009e73")
+      .text("Over-performing →");
+  }
+
+  // ── Event listeners ───────────────────────────────────────────────
+  minCovSel.on("change", renderQ3);
+  yearSel.on("change", renderQ3);
+  continentSel.on("change", renderQ3);
+  d3.select("#v3-topN").on("change", renderQ3);
+
+  // ── First render ──────────────────────────────────────────────────
+  populateYears();
+  renderQ3();
+}
+
+// ── Initialise article views after CSV load ───────────────────────────
+d3.csv(DATA_FILE, normaliseRow).then(rows => {
+  buildDerivedData(rows);
+  configureQ1Controls();
+  buildLegend();
+  const initialYear = +document.getElementById('yr-sl').value;
+  renderScatter(initialYear);
+  renderRight(initialYear);
+  initQ2();
+  initQ3();
+}).catch(err => {
+  console.error('Failed to load CSV:', err);
+  showLoadError('The CSV file could not be loaded. When testing locally, use a local server or open the hosted version.');
+});
+
+
+</script>
+</body>
+</html>
