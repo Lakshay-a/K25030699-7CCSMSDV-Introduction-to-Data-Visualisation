@@ -731,12 +731,17 @@ function renderScatter(yr){
     const c=ns('circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r','5');c.setAttribute('fill',CONT_COL[p.cont]||'#8c4c2f');c.setAttribute('opacity','0.82');c.setAttribute('stroke','#fffdf8');c.setAttribute('stroke-width','1');c.style.cursor='pointer';
     c.addEventListener('mouseenter',()=>{
       c.setAttribute('r','7');c.setAttribute('stroke','#8c4c2f');c.setAttribute('stroke-width','1.5');
-      const exp=reg?(reg.slope*p.iwi+reg.intercept).toFixed(1)+'%':'—';
-      const sign=p.resid>=0?'+':'';
       tip.style.opacity='1';
-      tip.innerHTML='<strong>'+p.name+'</strong><div class="tl">IWI: <span>'+p.iwi.toFixed(1)+'</span></div><div class="tl">Enrolment: <span>'+p.enrol.toFixed(1)+'%</span></div><div class="tl">Expected: <span>'+exp+'</span></div><div class="tl">Residual: <span>'+sign+p.resid.toFixed(1)+' pp</span></div><div class="tl" style="margin-top:4px;font-size:10px;color:#8a938f;">'+p.cont+' &middot; '+yr+'</div>';
+      tip.innerHTML='<strong>'+p.name+'</strong><div class="tl">IWI: <span>'+p.iwi.toFixed(1)+'</span></div><div class="tl">Secondary enrolment: <span>'+p.enrol.toFixed(1)+'%</span></div><div class="tl" style="margin-top:4px;font-size:10px;color:#8a938f;">'+p.cont+' &middot; '+yr+'</div>';
     });
-    c.addEventListener('mousemove',e=>{const b=scEl.parentElement.getBoundingClientRect();tip.style.left=(e.clientX-b.left+14)+'px';tip.style.top=(e.clientY-b.top-40)+'px';});
+    c.addEventListener('mousemove',e=>{
+      const pad=16;
+      const rect=tip.getBoundingClientRect();
+      const left=Math.min(window.innerWidth-rect.width-pad,e.clientX+14);
+      const top=Math.max(pad,e.clientY-rect.height-12);
+      tip.style.left=left+'px';
+      tip.style.top=top+'px';
+    });
     c.addEventListener('mouseleave',()=>{c.setAttribute('r','5');c.setAttribute('stroke','#fffdf8');c.setAttribute('stroke-width','1');tip.style.opacity='0';});
     scEl.appendChild(c);
   });
