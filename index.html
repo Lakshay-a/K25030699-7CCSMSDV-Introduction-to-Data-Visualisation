@@ -564,6 +564,11 @@ let RAW = [];
 let YEARLY = [];
 let DECILE = [];
 let q1Years = [];
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let q1IntroDone = false;
+let q2IntroDone = false;
+let q3IntroDone = false;
+const sectionRenderState = { q1Started:false, q2Started:false, q3Started:false };
 
 function num(v){
   if (v == null || v === "") return null;
@@ -650,6 +655,26 @@ function showLoadError(message){
   document.getElementById('v3-warning').textContent = message;
 }
 
+function observeSectionRender(sectionId, renderFn, startedKey){
+  if(prefersReducedMotion){
+    renderFn();
+    sectionRenderState[startedKey] = true;
+    return;
+  }
+  const section = document.getElementById(sectionId);
+  if(!section) return;
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if(entry.isIntersecting && !sectionRenderState[startedKey]){
+        renderFn();
+        sectionRenderState[startedKey] = true;
+        observer.unobserve(section);
+      }
+    });
+  }, { threshold: 0.25, rootMargin: '0px 0px -10% 0px' });
+  observer.observe(section);
+}
+
 // ── Q1: ANIMATED SCATTER PLOT ─────────────────────────────────────────
 // Uses pre-computed YEARLY stats and full RAW country-year array.
 // All regression, correlation, and tier counts computed from real data.
@@ -712,8 +737,13 @@ function renderScatter(yr){
   const r=pearsonR(xs,ys),reg=linReg(xs,ys);
   if(reg){
     const y0=reg.slope*0+reg.intercept,y1=reg.slope*100+reg.intercept,se=7;
-    const poly=ns('polygon');poly.setAttribute('points',[xSc(0),ySc(y0+se),xSc(100),ySc(y1+se),xSc(100),ySc(y1-se),xSc(0),ySc(y0-se)].join(' '));poly.setAttribute('fill','#8c4c2f');poly.setAttribute('opacity','0.08');scEl.appendChild(poly);
-    const ln=ns('line');ln.setAttribute('x1',xSc(0));ln.setAttribute('y1',ySc(y0));ln.setAttribute('x2',xSc(100));ln.setAttribute('y2',ySc(y1));ln.setAttribute('stroke','#8c4c2f');ln.setAttribute('stroke-width','1.5');ln.setAttribute('stroke-dasharray','6 4');ln.setAttribute('opacity','0.6');scEl.appendChild(ln);
+    const animateIntro=!q1IntroDone&&!prefersReducedMotion;
+    const poly=ns('polygon');poly.setAttribute('points',[xSc(0),ySc(y0+se),xSc(100),ySc(y1+se),xSc(100),ySc(y1-se),xSc(0),ySc(y0-se)].join(' '));poly.setAttribute('fill','#8c4c2f');poly.setAttribute('opacity',animateIntro?'0':'0.08');scEl.appendChild(poly);
+    const ln=ns('line');ln.setAttribute('x1',xSc(0));ln.setAttribute('y1',ySc(y0));ln.setAttribute('x2',animateIntro?xSc(0):xSc(100));ln.setAttribute('y2',animateIntro?ySc(y0):ySc(y1));ln.setAttribute('stroke','#8c4c2f');ln.setAttribute('stroke-width','1.5');ln.setAttribute('stroke-dasharray','6 4');ln.setAttribute('opacity',animateIntro?'0':'0.6');scEl.appendChild(ln);
+    if(animateIntro){
+      d3.select(poly).transition().duration(700).delay(120).attr('opacity',0.08);
+      d3.select(ln).transition().duration(900).delay(80).attr('x2',xSc(100)).attr('y2',ySc(y1)).attr('opacity',0.6);
+    }
   }
   if(showTrail){
     const tYrs=[yr-4,yr-3,yr-2,yr-1,yr].filter(y=>y>=1999);
@@ -728,7 +758,8 @@ function renderScatter(yr){
   pts.forEach(p=>{p.resid=reg?(p.enrol-(reg.slope*p.iwi+reg.intercept)):0;});
   pts.forEach(p=>{
     const cx=xSc(p.iwi),cy=ySc(p.enrol);
-    const c=ns('circle');c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r','5');c.setAttribute('fill',CONT_COL[p.cont]||'#8c4c2f');c.setAttribute('opacity','0.82');c.setAttribute('stroke','#fffdf8');c.setAttribute('stroke-width','1');c.style.cursor='pointer';
+    const animateIntro=!q1IntroDone&&!prefersReducedMotion;
+    const c=ns('circle');c.setAttribute('cx',cx);c.setAttribute('cy',animateIntro?ySc(0):cy);c.setAttribute('r',animateIntro?'0':'5');c.setAttribute('fill',CONT_COL[p.cont]||'#8c4c2f');c.setAttribute('opacity',animateIntro?'0.15':'0.82');c.setAttribute('stroke','#fffdf8');c.setAttribute('stroke-width','1');c.style.cursor='pointer';
     c.addEventListener('mouseenter',()=>{
       c.setAttribute('r','7');c.setAttribute('stroke','#8c4c2f');c.setAttribute('stroke-width','1.5');
       tip.style.opacity='1';
@@ -744,6 +775,9 @@ function renderScatter(yr){
     });
     c.addEventListener('mouseleave',()=>{c.setAttribute('r','5');c.setAttribute('stroke','#fffdf8');c.setAttribute('stroke-width','1');tip.style.opacity='0';});
     scEl.appendChild(c);
+    if(animateIntro){
+      d3.select(c).transition().duration(700).delay(140+Math.random()*260).attr('cy',cy).attr('r',5).attr('opacity',0.82);
+    }
   });
   const st=YEARLY.find(d=>d.year===yr)||{};
   document.getElementById('s-r').textContent=r!==null?r.toFixed(3):'—';
@@ -755,6 +789,7 @@ function renderScatter(yr){
     const strength=Math.abs(r)>0.88?'very strong':Math.abs(r)>0.82?'strong':'moderate';
     document.getElementById('live-insight').innerHTML='In <b>'+yr+'</b>, Pearson r = <b>'+r.toFixed(3)+'</b> — a '+strength+' positive association across <b>'+pts.length+'</b> countries. Each 10 IWI points associates with <b>'+(reg.slope*10).toFixed(1)+' pp</b> more enrolment. '+(st.low_iwi!==undefined?'<b>'+st.low_iwi+'</b> countries remain in the lowest wealth tier (IWI &lt; 40).':"");
   }
+  if(!q1IntroDone)q1IntroDone=true;
 }
 
 const rpEl=document.getElementById('rp');
@@ -889,9 +924,10 @@ function v2DrawBar(containerId, data, valueKey, formatFn, label) {
   g.append("g").attr("class","grid").attr("transform",`translate(0,${iH})`)
     .call(d3.axisBottom(x).ticks(5).tickSize(-iH).tickFormat(""));
 
+  const animateIntro=!q2IntroDone&&!prefersReducedMotion;
   g.selectAll(".bar").data(data).enter().append("rect")
     .attr("class","bar").attr("x",0).attr("y",d=>y(d.continent))
-    .attr("width",d=>x(d[valueKey])).attr("height",y.bandwidth())
+    .attr("width",animateIntro?0:d=>x(d[valueKey])).attr("height",y.bandwidth())
     .attr("fill",d=>v2ColorMap[d.continent]||"#888").attr("rx",2)
     .on("mouseover",(event,d)=>{
       v2tooltip.style("opacity",1)
@@ -900,11 +936,13 @@ function v2DrawBar(containerId, data, valueKey, formatFn, label) {
     .on("mousemove",(event)=>{
       v2tooltip.style("left",(event.clientX+14)+"px").style("top",(event.clientY-18)+"px");
     })
-    .on("mouseout",()=>v2tooltip.style("opacity",0));
+    .on("mouseout",()=>v2tooltip.style("opacity",0))
+    .transition().duration(900).delay((d,i)=>animateIntro?120+i*120:0).attr("width",d=>x(d[valueKey]));
 
   g.selectAll(".lbl").data(data).enter().append("text").attr("class","lbl")
-    .attr("x",d=>x(d[valueKey])+6).attr("y",d=>y(d.continent)+y.bandwidth()/2+4)
-    .attr("fill","var(--muted)").style("font-size","12px").text(d=>formatFn(d[valueKey]));
+    .attr("x",animateIntro?6:d=>x(d[valueKey])+6).attr("y",d=>y(d.continent)+y.bandwidth()/2+4)
+    .attr("fill","var(--muted)").style("font-size","12px").style("opacity",animateIntro?0:1).text(d=>formatFn(d[valueKey]))
+    .transition().duration(700).delay((d,i)=>animateIntro?260+i*120:0).attr("x",d=>x(d[valueKey])+6).style("opacity",1);
 
   g.append("g").attr("class","axis").call(d3.axisLeft(y).tickSize(0))
     .selectAll("text").style("fill","var(--muted)").style("font-size","12px");
@@ -932,9 +970,10 @@ function v2DrawCorr(containerId, data) {
   g.append("line").attr("class","zero-line")
     .attr("x1",x(0)).attr("x2",x(0)).attr("y1",0).attr("y2",iH);
 
+  const animateIntro=!q2IntroDone&&!prefersReducedMotion;
   g.selectAll(".cbar").data(data).enter().append("rect").attr("class","cbar")
-    .attr("x",d=>Math.min(x(0),x(d.r))).attr("y",d=>y(d.continent))
-    .attr("width",d=>Math.abs(x(d.r)-x(0))).attr("height",y.bandwidth())
+    .attr("x",x(0)).attr("y",d=>y(d.continent))
+    .attr("width",animateIntro?0:d=>Math.abs(x(d.r)-x(0))).attr("height",y.bandwidth())
     .attr("fill",d=>v2ColorMap[d.continent]||"#888").attr("rx",2)
     .on("mouseover",(event,d)=>{
       v2tooltip.style("opacity",1)
@@ -943,11 +982,14 @@ function v2DrawCorr(containerId, data) {
     .on("mousemove",(event)=>{
       v2tooltip.style("left",(event.clientX+14)+"px").style("top",(event.clientY-18)+"px");
     })
-    .on("mouseout",()=>v2tooltip.style("opacity",0));
+    .on("mouseout",()=>v2tooltip.style("opacity",0))
+    .transition().duration(900).delay((d,i)=>animateIntro?120+i*120:0)
+    .attr("x",d=>Math.min(x(0),x(d.r))).attr("width",d=>Math.abs(x(d.r)-x(0)));
 
   g.selectAll(".clbl").data(data).enter().append("text").attr("class","clbl")
     .attr("x",d=>d.r>=0?x(d.r)+6:x(d.r)-52).attr("y",d=>y(d.continent)+y.bandwidth()/2+4)
-    .attr("fill","var(--muted)").style("font-size","12px").text(d=>`r = ${d.r.toFixed(3)}`);
+    .attr("fill","var(--muted)").style("font-size","12px").style("opacity",animateIntro?0:1).text(d=>`r = ${d.r.toFixed(3)}`)
+    .transition().duration(600).delay((d,i)=>animateIntro?280+i*120:0).style("opacity",1);
 
   g.append("g").attr("class","axis").call(d3.axisLeft(y).tickSize(0))
     .selectAll("text").style("fill","var(--muted)").style("font-size","12px");
@@ -976,9 +1018,10 @@ function v2DrawGap(containerId, data) {
   g.append("line").attr("class","zero-line")
     .attr("x1",x(0)).attr("x2",x(0)).attr("y1",0).attr("y2",iH);
 
+  const animateIntro=!q2IntroDone&&!prefersReducedMotion;
   g.selectAll(".gbar").data(data).enter().append("rect").attr("class","gbar")
-    .attr("x",d=>Math.min(x(0),x(d.gapClosed))).attr("y",d=>y(d.continent))
-    .attr("width",d=>Math.abs(x(d.gapClosed)-x(0))).attr("height",y.bandwidth())
+    .attr("x",x(0)).attr("y",d=>y(d.continent))
+    .attr("width",animateIntro?0:d=>Math.abs(x(d.gapClosed)-x(0))).attr("height",y.bandwidth())
     .attr("fill",d=>v2ColorMap[d.continent]||"#888").attr("rx",2)
     .on("mouseover",(event,d)=>{
       v2tooltip.style("opacity",1)
@@ -987,13 +1030,16 @@ function v2DrawGap(containerId, data) {
     .on("mousemove",(event)=>{
       v2tooltip.style("left",(event.clientX+14)+"px").style("top",(event.clientY-18)+"px");
     })
-    .on("mouseout",()=>v2tooltip.style("opacity",0));
+    .on("mouseout",()=>v2tooltip.style("opacity",0))
+    .transition().duration(900).delay((d,i)=>animateIntro?120+i*120:0)
+    .attr("x",d=>Math.min(x(0),x(d.gapClosed))).attr("width",d=>Math.abs(x(d.gapClosed)-x(0)));
 
   g.selectAll(".glbl").data(data).enter().append("text").attr("class","glbl")
     .attr("x",d=>d.gapClosed>=0?x(d.gapClosed)+6:x(d.gapClosed)-44)
     .attr("y",d=>y(d.continent)+y.bandwidth()/2+4)
-    .attr("fill","var(--muted)").style("font-size","12px")
-    .text(d=>d.gapClosed>0?`+${d.gapClosed.toFixed(1)}`:d.gapClosed.toFixed(1));
+    .attr("fill","var(--muted)").style("font-size","12px").style("opacity",animateIntro?0:1)
+    .text(d=>d.gapClosed>0?`+${d.gapClosed.toFixed(1)}`:d.gapClosed.toFixed(1))
+    .transition().duration(600).delay((d,i)=>animateIntro?280+i*120:0).style("opacity",1);
 
   g.append("g").attr("class","axis").call(d3.axisLeft(y).tickSize(0))
     .selectAll("text").style("fill","var(--muted)").style("font-size","12px");
@@ -1082,6 +1128,7 @@ function initQ2() {
         `<b>Convergence visible but uneven</b> — ${bigG.continent} reduced its gap to the 2019 frontier the most (${bigG.gapClosed>0?"+":""}${bigG.gapClosed.toFixed(1)} IWI pts), whereas ${smlG.continent} closed the least (${smlG.gapClosed.toFixed(1)}).`
       );
     }
+    if(!q2IntroDone)q2IntroDone=true;
   }
 
   d3.select("#v2-metric").on("change", renderQ2);
@@ -1098,7 +1145,7 @@ function initQ2() {
     });
   });
 
-  renderQ2();
+  return renderQ2;
 }
 
 
@@ -1265,18 +1312,20 @@ function initQ3() {
       .text(`Global benchmark | valid countries this year: ${yearData.length} | displayed: ${display.length}`);
 
     // Lollipop stems
+    const animateIntro=!q3IntroDone&&!prefersReducedMotion;
     g.selectAll(".lollipop-line").data(display).enter().append("line")
       .attr("class","lollipop-line")
-      .attr("x1",x(0)).attr("x2",d=>x(d.residual))
+      .attr("x1",x(0)).attr("x2",x(0))
       .attr("y1",d=>y(d.country)+y.bandwidth()/2)
-      .attr("y2",d=>y(d.country)+y.bandwidth()/2);
+      .attr("y2",d=>y(d.country)+y.bandwidth()/2)
+      .transition().duration(900).delay((d,i)=>animateIntro?120+i*45:0).attr("x2",d=>x(d.residual));
 
     // Lollipop dots
     g.selectAll(".dot").data(display).enter().append("circle")
       .attr("class",d=>`dot ${d.residual>=0?"over":"under"}`)
-      .attr("cx",d=>x(d.residual))
+      .attr("cx",x(0))
       .attr("cy",d=>y(d.country)+y.bandwidth()/2)
-      .attr("r",6)
+      .attr("r",animateIntro?0:6)
       .on("mouseover",(event,d)=>{
         d3.select(event.currentTarget).attr("r",9);
         v3tooltip.style("opacity",1).html(
@@ -1295,7 +1344,8 @@ function initQ3() {
       .on("mouseout",(event)=>{
         d3.select(event.currentTarget).attr("r",6);
         v3tooltip.style("opacity",0);
-      });
+      })
+      .transition().duration(700).delay((d,i)=>animateIntro?260+i*45:0).attr("cx",d=>x(d.residual)).attr("r",6);
 
     // Direction labels at axis bottom
     g.append("text").attr("x",x(-maxAbs*0.7)).attr("y",IH+28)
@@ -1304,6 +1354,7 @@ function initQ3() {
     g.append("text").attr("x",x(maxAbs*0.7)).attr("y",IH+28)
       .attr("text-anchor","middle").style("font-size","11px").attr("fill","#009e73")
       .text("Over-performing →");
+    if(!q3IntroDone)q3IntroDone=true;
   }
 
   // ── Event listeners ───────────────────────────────────────────────
@@ -1313,8 +1364,7 @@ function initQ3() {
   d3.select("#v3-topN").on("change", renderQ3);
 
   // ── First render ──────────────────────────────────────────────────
-  populateYears();
-  renderQ3();
+  return renderQ3;
 }
 
 // ── Initialise article views after CSV load ───────────────────────────
@@ -1323,10 +1373,14 @@ d3.csv(DATA_FILE, normaliseRow).then(rows => {
   configureQ1Controls();
   buildLegend();
   const initialYear = +document.getElementById('yr-sl').value;
-  renderScatter(initialYear);
-  renderRight(initialYear);
-  initQ2();
-  initQ3();
+  observeSectionRender('sec-q1', () => {
+    renderScatter(initialYear);
+    renderRight(initialYear);
+  }, 'q1Started');
+  const renderQ2 = initQ2();
+  const renderQ3 = initQ3();
+  observeSectionRender('sec-q2', renderQ2, 'q2Started');
+  observeSectionRender('sec-q3', renderQ3, 'q3Started');
 }).catch(err => {
   console.error('Failed to load CSV:', err);
   showLoadError('The CSV file could not be loaded. When testing locally, use a local server or open the hosted version.');
